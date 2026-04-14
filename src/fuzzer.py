@@ -44,9 +44,9 @@ class SQLFuzzer:
                 query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
                 if isinstance(query_tree, exp.Block):
                     if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
-                         logger.warning(f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, " + \
+                        logger.warning(f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, " + \
                                         "and the parser fell back to parse it as a Command.")
-                         continue
+                        continue
                 
                 query_printed = query_tree.sql(dialect=SQL_DIALECT)
                 result = self.executor.execute(query_printed)
