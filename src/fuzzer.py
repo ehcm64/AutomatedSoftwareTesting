@@ -22,11 +22,18 @@ class SQLFuzzer:
         self.mutator = ASTMutator(dialect=SQL_DIALECT)
 
     def load_seeds_into_pool(self) -> None:
+        """
+        Load and validate the seed file. The parser provided by `sqlglot` doesn't cover the entire dialect of SQLite.
+        For now, we want to start with a clean pool, so we consider only the test cases with:
+            (i) no parsing errors;
+            (ii) no parsing warning (unsupported syntax to falls down to the generic Command);
+            (iii) success execution after doing a parse + print cycle.
+        """
         seeds: dict[str, str] = {}
         for filename in os.listdir(self.seed_dir):
             if filename.endswith('.sql'):
                 with open(os.path.join(self.seed_dir, filename), 'r') as f:
-                    seeds[filename] = f.read()
+                    seeds[filename] = "".join(f.read().splitlines())
         if not seeds:
             logger.error(f"No seed files found in {self.seed_dir}.")
             raise FileNotFoundError(f"No seed files found in {self.seed_dir}.")
@@ -34,22 +41,25 @@ class SQLFuzzer:
 
         for (filename, query) in seeds.items():
             try:
-                query_parsed = sqlglot.parse_one(query, read=SQL_DIALECT)
-                if isinstance(query_parsed, exp.Block):
-                    if any(isinstance(expr, exp.Command) for expr in query_parsed.expressions):
-                         logger.warning(f"Failed to parse seed file {filename}: Contains statement with unsupported syntax,\
-                                        and the parser fall back to parse it as a Command.")
+                query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
+                if isinstance(query_tree, exp.Block):
+                    if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
+                         logger.warning(f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, " + \
+                                        "and the parser fell back to parse it as a Command.")
                          continue
-                result = self.executor.execute(query)
+                
+                query_printed = query_tree.sql(dialect=SQL_DIALECT)
+                result = self.executor.execute(query_printed)
                 if result["status"] != "SUCCESS":
-                    self.report_bug(result)
-                else:
-                    self.pool.append(query)
+                    self.report_bug(result, query)
+                    continue
+                
+                self.pool.append(query_printed)
             except sqlglot.errors.ParseError as e:
                 logger.warning(f"Failed to parse seed file {filename}: {e.errors[0]}")
     
-    def report_bug(self, result: ExecutionResult) -> None:
-        logger.warning(f"Bug found! {result}")
+    def report_bug(self, result: ExecutionResult, query: str) -> None:
+        logger.warning(f"Potential bug! Result: {result}, Query: \"{query}\"")
 
     def run(self) -> None:
         logging_dir = setup_logging()
@@ -58,3 +68,10 @@ class SQLFuzzer:
         self.load_seeds_into_pool()
         
         logger.info(f"Initial pool size: {len(self.pool)}.")
+        for query in self.pool:
+            mutated_query = self.mutator.mutate(query)
+            result = self.executor.execute(mutated_query)
+            if result["status"] != "SUCCESS":
+                print(query)
+                print(mutated_query)
+                self.report_bug(result, mutated_query)

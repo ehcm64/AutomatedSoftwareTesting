@@ -3,7 +3,7 @@
 
 ```
 docker build -t sqlite-fuzzer .
-docker run --rm -it -v "$PWD":/home/test/fuzzer -w /home/test/fuzzer sqlite-fuzzer
+docker run -it -v "$PWD":/home/test/fuzzer -w /home/test/fuzzer sqlite-fuzzer
 ```
 
 ```
