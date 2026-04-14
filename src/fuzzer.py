@@ -3,7 +3,6 @@ from loguru import logger
 import sqlglot
 import sqlglot.errors
 from sqlglot import exp
-from sqlglot.errors import ErrorLevel
 from .executor import SQLiteDifferentialExecutor, ExecutionResult
 from .mutator import ASTMutator
 from .logger import setup_logging
@@ -14,12 +13,11 @@ SEED_DIR = "./seeds"
 SQL_DIALECT = "sqlite"
 
 class SQLFuzzer:
-    pool: list[str] = []
-
     def __init__(self, seed_dir: str = SEED_DIR):
         self.seed_dir = seed_dir
         self.executor = SQLiteDifferentialExecutor(SQLITE_PATCHED_VERSION_PATH, SQLITE_ORIGINAL_VERSION_PATH)
         self.mutator = ASTMutator(dialect=SQL_DIALECT)
+        self.pool: list[str] = []
 
     def load_seeds_into_pool(self) -> None:
         """
@@ -44,8 +42,10 @@ class SQLFuzzer:
                 query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
                 if isinstance(query_tree, exp.Block):
                     if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
-                        logger.warning(f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, " + \
-                                        "and the parser fell back to parse it as a Command.")
+                        logger.warning(
+                            f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, "
+                            "and the parser fell back to parse it as a Command."
+                        )
                         continue
                 
                 query_printed = query_tree.sql(dialect=SQL_DIALECT)
@@ -64,7 +64,7 @@ class SQLFuzzer:
     def run(self) -> None:
         logging_dir = setup_logging()
         logger.info("Starting SQL Fuzzer.")
-        logger.info(f"Logs will be saved to directoy {logging_dir}.")
+        logger.info(f"Logs will be saved to directory {logging_dir}.")
         self.load_seeds_into_pool()
         
         logger.info(f"Initial pool size: {len(self.pool)}.")
@@ -72,6 +72,4 @@ class SQLFuzzer:
             mutated_query = self.mutator.mutate(query)
             result = self.executor.execute(mutated_query)
             if result["status"] != "SUCCESS":
-                print(query)
-                print(mutated_query)
                 self.report_bug(result, mutated_query)

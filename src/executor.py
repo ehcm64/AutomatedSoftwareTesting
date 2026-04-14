@@ -1,5 +1,4 @@
 import subprocess
-from loguru import logger
 from typing import TypedDict, Literal
 
 class ExecutionResult(TypedDict):
@@ -38,10 +37,10 @@ class SQLiteDifferentialExecutor:
                 return {"status": "PATCHED_ERROR",
                         "description": f"Return code: {result_patched.returncode}, Error: {error_message}"}
             if result_original.stdout.decode("utf-8") != result_patched.stdout.decode("utf-8"):
-                pathced_output = result_patched.stdout.decode("utf-8")
+                patched_output = result_patched.stdout.decode("utf-8")
                 original_output = result_original.stdout.decode("utf-8")
                 return {"status": "LOGICAL_BUG",
-                        "description": f"Pathched output: {pathced_output}, Original output: {original_output}"}
+                        "description": f"Patched output: {patched_output}, Original output: {original_output}"}
             output = result_patched.stdout.decode("utf-8")
             return {"status": "SUCCESS",
                     "description": f"Output: {output}"}
