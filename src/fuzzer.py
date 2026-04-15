@@ -35,10 +35,15 @@ class SQLFuzzer:
         if not seeds:
             logger.error(f"No seed files found in {self.seed_dir}.")
             raise FileNotFoundError(f"No seed files found in {self.seed_dir}.")
-        logger.info(f"Loaded {len(seeds)} seed files from {self.seed_dir}.")
+        logger.info(f"Loading and validating {len(seeds)} seed files from {self.seed_dir}.")
 
         for (filename, query) in seeds.items():
             try:
+                result_initial = self.executor.execute(query)
+                if result_initial["status"] != "SUCCESS":
+                    self.report_bug(result_initial, query)
+                    continue
+
                 query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
                 if isinstance(query_tree, exp.Block):
                     if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
@@ -49,12 +54,13 @@ class SQLFuzzer:
                         continue
                 
                 query_printed = query_tree.sql(dialect=SQL_DIALECT)
-                result = self.executor.execute(query_printed)
-                if result["status"] != "SUCCESS":
-                    self.report_bug(result, query)
+                result_after = self.executor.execute(query_printed)
+                if result_after["status"] != "SUCCESS":
+                    self.report_bug(result_after, query_printed)
                     continue
                 
                 self.pool.append(query_printed)
+                logger.bind(query=True).info(f"-- seed file {filename}\n{query_tree.sql(dialect=SQL_DIALECT)}")
             except sqlglot.errors.ParseError as e:
                 logger.warning(f"Failed to parse seed file {filename}: {e.errors[0]}")
     

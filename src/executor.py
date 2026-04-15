@@ -31,7 +31,7 @@ class SQLiteDifferentialExecutor:
                 capture_output=True,
                 timeout=10
             )
-            # This can be either crash or malformed query.
+            # Here there's a defintely a bug since the original was fine (either crash or unexpected error).
             if result_patched.returncode != 0:
                 error_message = result_patched.stderr.decode("utf-8")
                 return {"status": "PATCHED_ERROR",
