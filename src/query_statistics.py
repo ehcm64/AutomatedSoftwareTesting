@@ -188,7 +188,8 @@ class QueryStatistics:
         return keyword_counts
 
     
-    def get_top30_keywords_stats(self, keyword_counts: dict[str, int]) -> str:
+    def get_top30_keywords_stats(self, queries: list[str]) -> str:
+        keyword_counts = self.get_keyword_stats(queries)
         sorted_keywords = sorted(keyword_counts.items(), key=lambda item: item[1], reverse=True)
         top30 = sorted_keywords[:30]
         

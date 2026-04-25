@@ -86,5 +86,5 @@ class SQLFuzzer:
         
         logger.info(get_performance_stats(self.statistics.total_queries))
         logger.info(self.statistics.get_validity_stats())
-        logger.info(self.statistics.get_top30_keywords_stats(self.statistics.get_keyword_stats(self.pool)))
+        logger.info(self.statistics.get_top30_keywords_stats(self.pool))
         
