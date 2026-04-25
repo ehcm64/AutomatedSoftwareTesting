@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "test-db"
 version = "0.1.0"
-description = "SQL Fuzzer"
+description = "SQLite Fuzzer"
 requires-python = ">=3.9"
 dependencies = [
     "sqlglot>=30.4.3",
