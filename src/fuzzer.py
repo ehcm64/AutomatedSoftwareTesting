@@ -17,7 +17,8 @@ class SQLFuzzer:
         self.seed_dir = seed_dir
         self.executor = SQLiteDifferentialExecutor(SQLITE_PATCHED_VERSION_PATH, SQLITE_ORIGINAL_VERSION_PATH)
         self.mutator = ASTMutator(dialect=SQL_DIALECT)
-        self.pool: list[str] = []
+        self.pool_list: list[tuple[str, str]] = []
+        self.pool_set: set[str] = set()
 
     def load_seeds_into_pool(self) -> None:
         """
@@ -59,8 +60,9 @@ class SQLFuzzer:
                     self.report_bug(result_after, query_printed)
                     continue
                 
-                self.pool.append(query_printed)
-                logger.bind(query=True).info(f"-- seed file {filename}\n{query_tree.sql(dialect=SQL_DIALECT)}")
+                logger.bind(query=True).info(f"-- seed file {filename}\n{query_printed}")
+                self.pool_list.append((query_printed, filename))
+                self.pool_set.add(query_printed)
             except sqlglot.errors.ParseError as e:
                 logger.warning(f"Failed to parse seed file {filename}: {e.errors[0]}")
     
@@ -73,9 +75,26 @@ class SQLFuzzer:
         logger.info(f"Logs will be saved to directory {logging_dir}.")
         self.load_seeds_into_pool()
         
-        logger.info(f"Initial pool size: {len(self.pool)}.")
-        for query in self.pool:
-            mutated_query = self.mutator.mutate(query)
-            result = self.executor.execute(mutated_query)
-            if result["status"] != "SUCCESS":
-                self.report_bug(result, mutated_query)
+        logger.info(f"Starting mutations with initial pool size: {len(self.pool_list)}.")
+        generated = 0
+        while True:
+            if generated > 1e5 or len(self.pool_list) == 0:
+                break
+            current_query, current_index = self.pool_list.pop()
+            for _ in range(10):
+                mutated_query = self.mutator.mutate_all(current_query)
+
+                if mutated_query in self.pool_set:
+                    continue
+                generated += 1
+                logger.bind(query=True).info(f"-- index: {generated}; parent: {current_index}\n{mutated_query}")
+
+                result = self.executor.execute(mutated_query)
+                if result["status"] != "SUCCESS":
+                    self.report_bug(result, mutated_query)
+                else:
+                    self.pool_list.append((mutated_query, str(generated)))
+                    self.pool_set.add(mutated_query)
+            if len(self.pool_set) % 100 == 0:
+                logger.info(len(self.pool_set))
+        logger.info(f"Finished trying {len(self.pool_set)} queries.")
