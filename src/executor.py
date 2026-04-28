@@ -1,5 +1,6 @@
 import subprocess
 from typing import TypedDict, Literal
+from .performance_statistics import timed
 
 class ExecutionResult(TypedDict):
     status: Literal["ORIGINAL_ERROR", "PATCHED_ERROR", "LOGICAL_BUG", "SUCCESS", "TIMEOUT"]
@@ -10,6 +11,7 @@ class SQLiteDifferentialExecutor:
         self.db_executable_patched = db_executable_patched
         self.db_executable_original = db_executable_original
     
+    @timed("execution")
     def execute(self, query: str) -> ExecutionResult:
         try:
             result_original = subprocess.run(

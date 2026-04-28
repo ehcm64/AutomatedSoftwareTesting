@@ -13,5 +13,11 @@ pip3 install -r requirements.txt
 ```
 
 ```
-python3 run.py
+python3 run.py <args>
+```
+
+OR
+```
+pip install -e . # Creates executable in editable mode (no need to re-run this even after editing code)
+test-db <args>
 ```

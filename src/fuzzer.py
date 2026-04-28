@@ -6,6 +6,8 @@ from sqlglot import exp
 from .executor import SQLiteDifferentialExecutor, ExecutionResult
 from .mutator import ASTMutator
 from .logger import setup_logging
+from .performance_statistics import get_performance_stats
+from .query_statistics import QueryStatistics
 
 SQLITE_PATCHED_VERSION_PATH = "/usr/bin/sqlite3-3.39.4"
 SQLITE_ORIGINAL_VERSION_PATH = "/usr/bin/sqlite3"
@@ -17,6 +19,7 @@ class SQLFuzzer:
         self.seed_dir = seed_dir
         self.executor = SQLiteDifferentialExecutor(SQLITE_PATCHED_VERSION_PATH, SQLITE_ORIGINAL_VERSION_PATH)
         self.mutator = ASTMutator(dialect=SQL_DIALECT)
+        self.statistics = QueryStatistics()
         self.pool: list[str] = []
 
     def load_seeds_into_pool(self) -> None:
@@ -77,5 +80,11 @@ class SQLFuzzer:
         for query in self.pool:
             mutated_query = self.mutator.mutate(query)
             result = self.executor.execute(mutated_query)
+            self.statistics.collect(result)
             if result["status"] != "SUCCESS":
                 self.report_bug(result, mutated_query)
+        
+        logger.info(get_performance_stats(self.statistics.total_queries))
+        logger.info(self.statistics.get_validity_stats())
+        logger.info(self.statistics.get_top30_keywords_stats(self.pool))
+        
