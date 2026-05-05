@@ -2,6 +2,7 @@ import sqlglot
 import random
 from sqlglot import exp
 from loguru import logger
+from .performance_statistics import timed
 
 class ASTMutator:
     def __init__(self, dialect: str):
@@ -15,7 +16,8 @@ class ASTMutator:
         column_names = [column.name.lower() for column in statement.expressions]
         self.schema[table_name] = column_names
 
-    def mutate_all(self, query: str) -> str:
+    @timed("mutation")
+    def mutate(self, query: str) -> str:
         statements: exp.Expr = sqlglot.parse_one(query, read=self.dialect)
         if not isinstance(statements, exp.Block):
             logger.warning(f"Expected a block of statements at the top level for query \"{query}\"")

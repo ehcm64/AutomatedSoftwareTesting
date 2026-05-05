@@ -1,7 +1,7 @@
 from src.fuzzer import SQLFuzzer
 import argparse
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", help="command to execute", choices=["fuzz", "test"])
     parser.add_argument("--file", type=str, help="path to a file containing a single SQL query to test")
@@ -16,3 +16,6 @@ if __name__ == "__main__":
             query = "".join(f.read().splitlines())
             result = fuzzer.executor.execute(query)
             fuzzer.report_bug(result, query)
+    
+if __name__ == "__main__":
+    main()
