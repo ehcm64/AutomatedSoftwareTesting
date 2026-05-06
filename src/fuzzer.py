@@ -63,17 +63,32 @@ class SQLFuzzer:
                     self.report_execution_result(result_after, query_printed)
                     continue
                 
-                logger.bind(query=True).info(f"-- seed file {filename}\n{query_printed}")
+                self.report_query(query_printed, id=filename, parent="None")
                 self.pool_list.append((query_printed, filename))
                 self.pool_set.add(query_printed)
             except sqlglot.errors.ParseError as e:
                 logger.warning(f"Failed to parse seed file {filename}: {e.errors[0]}")
     
+    def pretty_print(self, query: str) -> str:
+        query_parsed = sqlglot.parse_one(query, read=SQL_DIALECT)
+        if isinstance(query_parsed, exp.Block):
+            return ";\n".join(expr.sql(dialect=SQL_DIALECT) for expr in query_parsed.expressions) + ";"
+        return query_parsed.sql(dialect=SQL_DIALECT)
+
+    def report_query(self, query: str, id: str, parent: str) -> None:
+        """Helpful to keep track of the mutation tree and the queries that are being executed."""
+        logger.bind(query=True).info(f"--- index: {id}; parent: {parent}\n{self.pretty_print(query)}")
+
     def report_execution_result(self, result: ExecutionResult, query: str) -> None:
+        pretty_output = "\n".join([
+            f"Execution result with status {result['status']}!",
+            f"Description:\n{result['description']}",
+            f"Query:\n{self.pretty_print(query)}"
+        ])
         if result["status"] != "SUCCESS":
-            logger.error(f"Execution result: {result}, Query: \"{query}\"")
+            logger.error(pretty_output)
         else:
-            logger.info(f"Execution result: {result}, Query: \"{query}\"")
+            logger.info(pretty_output)
 
     def run(self) -> None:
         logging_dir = setup_logging()
@@ -93,7 +108,7 @@ class SQLFuzzer:
                 if mutated_query in self.pool_set:
                     continue
                 generated += 1
-                logger.bind(query=True).info(f"-- index: {generated}; parent: {current_index}\n{mutated_query}")
+                self.report_query(mutated_query, id=str(generated), parent=current_index)
 
                 result = self.executor.execute(mutated_query)
                 self.statistics.collect(result)

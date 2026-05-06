@@ -23,7 +23,7 @@ class SQLiteDifferentialExecutor:
             # Queries that cause errors in the original version should be investigated
             # (they are malformed or trigger unknown bugs).
             if result_original.returncode != 0:
-                error_message = result_original.stderr.decode("utf-8")
+                error_message = result_original.stderr.decode("utf-8").strip()
                 return {"status": "ORIGINAL_ERROR",
                         "description": f"Return code: {result_original.returncode}, Error: {error_message}"}
             
@@ -35,17 +35,17 @@ class SQLiteDifferentialExecutor:
             )
             # Here there's a defintely a bug since the original was fine (either crash or unexpected error).
             if result_patched.returncode != 0:
-                error_message = result_patched.stderr.decode("utf-8")
+                error_message = result_patched.stderr.decode("utf-8").strip()
                 return {"status": "PATCHED_ERROR",
                         "description": f"Return code: {result_patched.returncode}, Error: {error_message}"}
-            if result_original.stdout.decode("utf-8") != result_patched.stdout.decode("utf-8"):
-                patched_output = result_patched.stdout.decode("utf-8")
-                original_output = result_original.stdout.decode("utf-8")
+            # TODO: Handle orders
+            original_output = result_original.stdout.decode("utf-8").strip()
+            patched_output = result_patched.stdout.decode("utf-8").strip()
+            if sorted(original_output) != sorted(patched_output):
                 return {"status": "LOGICAL_BUG",
-                        "description": f"Patched output: {patched_output}, Original output: {original_output}"}
-            output = result_patched.stdout.decode("utf-8")
+                        "description": f"Patched output:\n{patched_output}\nOriginal output:\n{original_output}"}
             return {"status": "SUCCESS",
-                    "description": f"Output: {output}"}
+                    "description": f"Output:\n{patched_output}"}
         except subprocess.TimeoutExpired:
             return {"status": "TIMEOUT",
                     "description": "Query execution timed out."}
