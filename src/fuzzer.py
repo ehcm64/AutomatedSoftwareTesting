@@ -13,6 +13,7 @@ SQLITE_PATCHED_VERSION_PATH = "/usr/bin/sqlite3-3.39.4"
 SQLITE_ORIGINAL_VERSION_PATH = "/usr/bin/sqlite3"
 SEED_DIR = "./seeds"
 SQL_DIALECT = "sqlite"
+EXCLUDED_SEEDS = ["autoindex-1-3.sql", "select7-3.sql"]
 
 class SQLFuzzer:
     def __init__(self, seed_dir: str = SEED_DIR):
@@ -42,10 +43,12 @@ class SQLFuzzer:
         logger.info(f"Loading and validating {len(seeds)} seed files from {self.seed_dir}.")
 
         for (filename, query) in seeds.items():
+            if filename in EXCLUDED_SEEDS:
+                continue
             try:
                 result_initial = self.executor.execute(query)
                 if result_initial["status"] != "SUCCESS":
-                    self.report_execution_result(result_initial, query)
+                    self.report_execution_result(result_initial, query, filename)
                     continue
 
                 query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
@@ -60,7 +63,7 @@ class SQLFuzzer:
                 query_printed = query_tree.sql(dialect=SQL_DIALECT)
                 result_after = self.executor.execute(query_printed)
                 if result_after["status"] != "SUCCESS":
-                    self.report_execution_result(result_after, query_printed)
+                    self.report_execution_result(result_after, query_printed, filename)
                     continue
                 
                 self.report_query(query_printed, id=filename, parent="None")
@@ -79,11 +82,11 @@ class SQLFuzzer:
         """Helpful to keep track of the mutation tree and the queries that are being executed."""
         logger.bind(query=True).info(f"--- index: {id}; parent: {parent}\n{self.pretty_print(query)}")
 
-    def report_execution_result(self, result: ExecutionResult, query: str) -> None:
+    def report_execution_result(self, result: ExecutionResult, query: str, query_id: str) -> None:
         pretty_output = "\n".join([
             f"Execution result with status {result['status']}!",
             f"Description:\n{result['description']}",
-            f"Query:\n{self.pretty_print(query)}"
+            f"Query: ID {query_id}\n{self.pretty_print(query)}"
         ])
         if result["status"] != "SUCCESS":
             logger.error(pretty_output)
@@ -103,7 +106,7 @@ class SQLFuzzer:
                 break
             current_query, current_index = self.pool_list.pop()
             for _ in range(10):
-                mutated_query = self.mutator.mutate(current_query)
+                mutated_query, _ = self.mutator.mutate(current_query, current_index)
 
                 if mutated_query in self.pool_set:
                     continue
@@ -113,7 +116,7 @@ class SQLFuzzer:
                 result = self.executor.execute(mutated_query)
                 self.statistics.collect(result)
                 if result["status"] != "SUCCESS":
-                    self.report_execution_result(result, mutated_query)
+                    self.report_execution_result(result, mutated_query, str(generated))
                 else:
                     self.pool_list.append((mutated_query, str(generated)))
                     self.pool_set.add(mutated_query)
