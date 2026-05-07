@@ -112,11 +112,16 @@ class SQLFuzzer:
         if os.path.exists(self.gcda_path):
             os.remove(self.gcda_path)
         while True:
-            if queries_generated_count > max_queries:
+            if queries_generated_count > max_queries or not self.pool:
                 break
             # Pick a random query from the corpus.
-            base_query, base_query_id = random.choice(self.pool)
-            mutated_queries = self.mutator.mutate(base_query, base_query_id, 1)
+            chosen_id = random.choice(range(len(self.pool)))
+            base_query, base_query_id = self.pool[chosen_id]
+            mutated_queries = self.mutator.mutate(base_query, base_query_id, 10)
+            if not mutated_queries:
+                logger.warning(f"No mutations generated for query ID {base_query_id}. Removing it from the pool.")
+                self.pool.pop(chosen_id) 
+                continue
             for mutated_query in mutated_queries:
                 if mutated_query in self.generated_queries:
                     continue

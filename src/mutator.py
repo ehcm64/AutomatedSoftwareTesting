@@ -12,6 +12,7 @@ class ASTMutator:
     def __init__(self, dialect: str):
         self.dialect = dialect
         self.schema: dict[str, list[str]] = {}
+        self.mutation_cache = {}
         self.query_id = None
 
     @timed("mutation")
@@ -23,16 +24,36 @@ class ASTMutator:
             logger.warning(f"Expected a block of statements at the top level for query {query_id}")
             return []
         
-        # We want to start by collecting all available mutations.
+        # If we have already collected mutations for this query, we can just sample from the cache.
+        # Otherwise, we first need to collect all available mutations by traversing the AST and applying our mutation rules.
+        if query_id in self.mutation_cache:
+            available_mutations = self.mutation_cache[query_id]
+        else:
+            available_mutations = self.collect_all_mutations(query_parsed, query_id)
+            self.mutation_cache[query_id] = available_mutations
+        
+        # We then randomly sample from the available mutations and remove them from the cache.
+        num_mutations = min(num_mutations, len(available_mutations))
+        chosen_mutations_idx = random.sample(range(len(available_mutations)), num_mutations)
+        chosen_mutations_idx.sort(reverse=True)
+        chosen_mutations = [available_mutations.pop(i) for i in chosen_mutations_idx]
+        results = []
+        for mutation, _ in chosen_mutations:
+            block_copy = sqlglot.parse_one(query, read=self.dialect)
+            assert isinstance(block_copy, exp.Block), f"Expected a block of statements at the top level for query {query_id}"
+            mutation(block_copy)
+            results.append(block_copy.sql(dialect=self.dialect))
+        return results
+
+    def collect_all_mutations(self, block: exp.Block, query_id: str) -> List[Tuple[Callable[[exp.Block], None], str]]:
         self.schema = {}
         self.query_id = query_id
-        available_mutations: List[Tuple[Callable[[None], None], str]] = []
-        block: exp.Block = query_parsed
+        available_mutations: List[Tuple[Callable[[exp.Block], None], str]] = []
         for i, statement in enumerate(block.expressions):
             self.update_schema(statement, query_id)
             if isinstance(statement, exp.Select):
                 # Mutation 1: Toggle DISTINCT in the SELECT clause.
-                available_mutations.extend(self.collect_mutations_select_clause(statement, i))
+                available_mutations.extend(self.collect_mutations_select_clause(i))
 
                 # Mutation 2: Mutate the JOIN clause (change type, add/remove conditions).
                 # The join types are: INNER, LEFT, RIGHT, FULL, CROSS.
@@ -40,10 +61,10 @@ class ASTMutator:
                 available_mutations.extend(self.collect_mutations_join_clause(statement, i))
 
                 # Mutation 3: Mutate subquery predicates (EXISTS, IN, ANY, ALL).
-                # The predicate can be of the following types:
-                # - Type I: All, Any;
-                # - Type II: In, Not In;
-                # - Type III: Exists, Not Exists.
+                # There are several types of such predicates:
+                # Type I: [ANY, ALL];
+                # Type II: [IN, NOT IN];
+                # Type III: [EXISTS, NOT EXISTS].
                 available_mutations.extend(self.collect_mutations_subquery_predicate(statement, i))
 
                 # Mutation 4: Remove expressions from the GROUP BY clause.
@@ -51,11 +72,28 @@ class ASTMutator:
 
                 # Mutation 5: Mutate aggregate functions (change function, add/remove DISTINCT).
                 available_mutations.extend(self.collect_mutations_aggregate_function(statement, i))
-        # print(available_mutations)                
-        mutations_to_apply = random.sample(available_mutations, min(num_mutations, len(available_mutations)))
-        for mutation_func, _ in mutations_to_apply:
-            mutation_func(None)
-        return [query_parsed.sql(dialect=self.dialect)]
+
+                # # Mutation 6: Replace a relational operator (=, <>, <, <=, >, >=).
+                # available_mutations.extend(self.collect_mutations_ror(statement, i))
+
+                # # Mutation 7: Replace a logical connector (AND, OR).
+                # available_mutations.extend(self.collect_mutations_lcr(statement, i))
+
+                # # Mutation 8: Insert a unary operator (+1, -1, negate) on an arithmetic expression.
+                # available_mutations.extend(self.collect_mutations_uoi(statement, i))
+
+                # # Mutation 9: Wrap an arithmetic expression in ABS or -ABS.
+                # available_mutations.extend(self.collect_mutations_abs(statement, i))
+
+                # # Mutation 10: Replace an arithmetic operator (+, -, *, /, %).
+                # available_mutations.extend(self.collect_mutations_aor(statement, i))
+
+                # # Mutation 11: Replace BETWEEN with explicit inequalities.
+                # available_mutations.extend(self.collect_mutations_btw(statement, i))
+
+                # # Mutation 12: Mutate a LIKE/ILIKE wildcard pattern.
+                # available_mutations.extend(self.collect_mutations_lke(statement, i))
+        return available_mutations
 
     def update_schema(self, statement: exp.Expr, query_id: str):
         if isinstance(statement, exp.Create) and isinstance(statement.this, exp.Schema) and isinstance(statement.this.this, exp.Table):
@@ -72,9 +110,9 @@ class ASTMutator:
                     self.schema[table_name].append(column.name.lower())
 
     ############################### SQL Clause Mutation Operators ###############################    
-    def collect_mutations_select_clause(self, statement: exp.Select, statement_index: int):
+    def collect_mutations_select_clause(self, statement_index: int):
         desc = f"[Statement {statement_index}] Toggle DISTINCT in SELECT clause."
-        return [(lambda _: self.mutate_select_clause(statement), desc)]
+        return [(lambda block: self.mutate_select_clause(statement=block.expressions[statement_index]), desc)]
 
     def mutate_select_clause(self, statement: exp.Select):
         is_distinct = statement.args.get("distinct")
@@ -82,37 +120,42 @@ class ASTMutator:
     
     def collect_mutations_join_clause(self, statement: exp.Select, statement_index: int):
         join_types = [("CROSS", None), ("INNER", None), (None, "LEFT"), (None, "RIGHT"), (None, "FULL")]
-        joins = statement.args.get("joins")
-        if joins is None:
-            return []
-        join_target: exp.Join = random.choice(joins)
-        join_target_type = (join_target.args.get("kind"), join_target.args.get("side"))
-        join_target_type_str = join_target.args.get("kind") or join_target.args.get("side")
-        join_new_type = random.choice([jt for jt in join_types if jt != join_target_type])
-        join_new_type_str = join_new_type[0] or join_new_type[1]
-        if join_target.args.get("kind") == "CROSS":
-            # In case we replace a CROSS JOIN, we need to add conditions since other join types require them.
-            base_table = statement.args.get("from_")
-            join_table = join_target.this
-            if base_table and isinstance(base_table.this, exp.Table) and isinstance(join_table.this, exp.Identifier):
-                base_table_name = base_table.name.lower()
-                join_table_name = join_table.name.lower()
-                if base_table_name in self.schema and join_table_name in self.schema\
-                    and self.schema[base_table_name] and self.schema[join_table_name]:
-                    base_col = self.schema[base_table_name][0]
-                    join_col = self.schema[join_table_name][0]
-                    condition = f"{base_table_name}.{base_col} = {join_table_name}.{join_col}"
-                    desc = f"[Statement {statement_index}] Mutate CROSS JOIN to {join_new_type_str} JOIN with condition {condition}."
-                    return [(lambda _: self.mutate_join_clause(join_target, join_new_type[0], join_new_type[1], condition), desc)]
+        joins = statement.args.get("joins", [])
+        mutations = []
+        for join_idx, join_target in enumerate(joins):
+            join_target_type = (join_target.args.get("kind"), join_target.args.get("side"))
+            join_target_type_str = join_target.args.get("kind") or join_target.args.get("side")
+            possible_new_join_types = [jt for jt in join_types if jt != join_target_type]
+            for join_new_type in possible_new_join_types:
+                join_new_type_str = join_new_type[0] or join_new_type[1]
+                if join_target_type_str == "CROSS":
+                    # In case we replace a CROSS JOIN, we need to add conditions since other join types require them.
+                    base_table = statement.args.get("from_")
+                    join_table = join_target.this
+                    if base_table and isinstance(base_table.this, exp.Table) and isinstance(join_table.this, exp.Identifier):
+                        base_table_name = base_table.name.lower()
+                        join_table_name = join_table.name.lower()
+                        if base_table_name in self.schema and join_table_name in self.schema\
+                            and self.schema[base_table_name] and self.schema[join_table_name]:
+                            base_col = self.schema[base_table_name][0]
+                            join_col = self.schema[join_table_name][0]
+                            condition = f"{base_table_name}.{base_col} = {join_table_name}.{join_col}"
+                            desc = f"[Statement {statement_index}] Mutate CROSS JOIN to {join_new_type_str} JOIN with condition {condition}."
+                            mutations.append((lambda block, ji=join_idx, jnt=join_new_type, cond=condition:
+                                              self.mutate_join_clause(join_target=block.expressions[statement_index].args["joins"][ji],
+                                                                      join_new_kind=jnt[0],
+                                                                      join_new_side=jnt[1],
+                                                                      sql_condition=cond), desc))
+                        else:
+                            logger.warning(f"Query {self.query_id} has a CROSS JOIN, but we cannot mutate it")
                 else:
-                    logger.warning(f"Query {self.query_id} has a CROSS JOIN, but we cannot mutate it")
-                    return []
-            else:
-                # In case of join of subqueries we don't have schema information.
-                return []
-        else:
-            desc = f"[Statement {statement_index}] Mutate {join_target_type_str} JOIN to {join_new_type_str} JOIN."
-            return [(lambda _: self.mutate_join_clause(join_target, join_new_type[0], join_new_type[1], None), desc)]
+                    desc = f"[Statement {statement_index}] Mutate {join_target_type_str} JOIN to {join_new_type_str} JOIN."
+                    mutations.append((lambda block, ji=join_idx, jnt=join_new_type:
+                                      self.mutate_join_clause(join_target=block.expressions[statement_index].args["joins"][ji],
+                                                              join_new_kind=jnt[0],
+                                                              join_new_side=jnt[1],
+                                                              sql_condition=None), desc))
+        return mutations
 
     def mutate_join_clause(self, join_target: exp.Join, join_new_kind: str, join_new_side: str, sql_condition: str | None):
         join_target.set("kind", join_new_kind)
@@ -126,62 +169,78 @@ class ASTMutator:
     
     def collect_mutations_subquery_predicate(self, statement: exp.Select, statement_index: int):
         targets = list(statement.find_all(exp.In, exp.Exists, exp.Any, exp.All))
-        if not targets:
-            return []
-        subqeury_predicate_target = random.choice(targets)
-        desc = f"[Statement {statement_index}] Mutate a subquery predicate of type {type(subqeury_predicate_target).__name__}."
-        return [(lambda _: self.mutate_subquery_predicate(subqeury_predicate_target), desc)]
+        mutations = []
+        for target_idx, target in enumerate(targets):
+            def get_expression_copy(block, si=statement_index, ti=target_idx):
+                return list(block.expressions[si].find_all(exp.In, exp.Exists, exp.Any, exp.All))[ti]
+            if isinstance(target, exp.Any):
+                mutations.append((lambda block, f=get_expression_copy: self.mutate_any_all(f(block), exp.All),
+                                  f"[Statement {statement_index}] Replace ANY with ALL."))
+            elif isinstance(target, exp.All):
+                mutations.append((lambda block, f=get_expression_copy: self.mutate_any_all(f(block), exp.Any),
+                                  f"[Statement {statement_index}] Replace ALL with ANY."))
+            elif isinstance(target, exp.Exists):
+                mutations.append((lambda block, f=get_expression_copy: self.mutate_exists_toggle(f(block)),
+                                  f"[Statement {statement_index}] Toggle NOT on EXISTS."))
+            elif isinstance(target, exp.In):
+                # We can either toggle NOT on IN, or convert it to an EXISTS subquery (if it has a subquery).
+                mutations.append((lambda block, f=get_expression_copy: self.mutate_in_toggle(f(block)),
+                                  f"[Statement {statement_index}] Toggle NOT on IN."))
+                if target.args.get("query") is not None:
+                    mutations.append((lambda block, f=get_expression_copy: self.mutate_in_to_exists(f(block), is_not=False),
+                                      f"[Statement {statement_index}] Replace IN with EXISTS."))
+                    mutations.append((lambda block, f=get_expression_copy: self.mutate_in_to_exists(f(block), is_not=True),
+                                      f"[Statement {statement_index}] Replace IN with NOT EXISTS."))
+        return mutations
 
-    def mutate_subquery_predicate(self, predicate_target: exp.Expr):
-        if isinstance(predicate_target, (exp.All, exp.Any)):
-            new_class = exp.All if isinstance(predicate_target, exp.Any) else exp.Any
-            predicate_target.replace(new_class(**predicate_target.args))
-        elif isinstance(predicate_target, exp.Exists):
-            if isinstance(predicate_target.parent, exp.Not):
-                predicate_target.parent.replace(predicate_target.copy())
-            else:
-                predicate_target.replace(exp.Not(this=predicate_target.copy()))
-        elif isinstance(predicate_target, exp.In):
-            q = predicate_target.args.get("query")
-            new_type = random.choice(["typeII", "typeIII"])
-            if q is None:
-                new_type = "typeII"
-            if new_type == "typeII":
-                if isinstance(predicate_target.parent, exp.Not):
-                    predicate_target.parent.replace(predicate_target.copy())
-                else:
-                    predicate_target.replace(exp.Not(this=predicate_target.copy()))
-            elif new_type == "typeIII":
-                assert q is not None, "Expected to have a subquery for type III mutation."
-                is_not_exists = random.choice([True, False])
-                clean_q = q.unnest().copy()
-                new_exists = exp.Exists(this=clean_q)
-                if isinstance(predicate_target.parent, exp.Not):
-                    predicate_target.parent.replace(exp.Not(this=new_exists) if is_not_exists else new_exists)
-                else:
-                    predicate_target.replace(exp.Not(this=new_exists) if is_not_exists else new_exists)
+    def mutate_any_all(self, target: exp.Expr, new_class):
+        target.replace(new_class(**target.args))
+
+    def mutate_exists_toggle(self, target: exp.Exists):
+        if isinstance(target.parent, exp.Not):
+            target.parent.replace(target.copy())
+        else:
+            target.replace(exp.Not(this=target.copy()))
+
+    def mutate_in_toggle(self, target: exp.In):
+        if isinstance(target.parent, exp.Not):
+            target.parent.replace(target.copy())
+        else:
+            target.replace(exp.Not(this=target.copy()))
+
+    def mutate_in_to_exists(self, target: exp.In, is_not: bool):
+        q = target.args.get("query")
+        assert q is not None
+        new_exists = exp.Exists(this=q.unnest().copy())
+        replacement = exp.Not(this=new_exists) if is_not else new_exists
+        if isinstance(target.parent, exp.Not):
+            target.parent.replace(replacement)
+        else:
+            target.replace(replacement)
     
     def collect_mutations_group_by_clause(self, statement: exp.Select, statement_index: int):
         group = statement.args.get("group")
         if group is None:
             return []
-        desc = f"[Statement {statement_index}] Remove expression from the GROUP BY clause."
-        return [(lambda _: self.mutate_group_by_clause(statement, group), desc)]
+        mutations = []
+        for expr_idx in range(len(group.expressions)):
+            desc = f"[Statement {statement_index}] Remove GROUP BY expression at index {expr_idx}."
+            mutations.append((
+                lambda block, si=statement_index, ei=expr_idx:
+                    self.mutate_group_by_clause(block.expressions[si], block.expressions[si].args.get("group"), ei), desc))
+        return mutations
 
-    def mutate_group_by_clause(self, statement: exp.Select, group_target: exp.Group):
+    def mutate_group_by_clause(self, statement: exp.Select, group_target: exp.Group, expr_idx: int):
         group_expressions = group_target.expressions
         if len(group_expressions) == 1:
             statement.set("group", None)
             statement.set("having", None)
         else:
-            expression_to_remove = random.choice(group_expressions)
+            expression_to_remove = group_expressions[expr_idx]
             identifier = expression_to_remove.this
             if isinstance(identifier, exp.Identifier):
                 identifier_name = identifier.name.lower()
-                # In order to remove an expression from the GROUP BY clause
-                # and keep the query valid, we also need to check if it is ia present in
-                # the SELECT clause and the ORDER BY clause. If it's there, we will
-                # wrap it in an aggregate function instead of removing it.
+                # If the removed expression appears in SELECT or ORDER BY, we wrap it in an aggregate to keep the query valid.
                 order_by = statement.args.get("order")
                 if order_by is not None:
                     for order_expression in order_by.expressions:
@@ -189,121 +248,113 @@ class ASTMutator:
                         if isinstance(column.this, exp.Identifier) and column.this.name.lower() == identifier_name:
                             aggregate = random.choice([exp.Max, exp.Min])
                             order_expression.set("this", aggregate(this=expression_to_remove.copy()))
-                select_expressions = statement.expressions
-                if select_expressions is not None:
-                    for select_expression in select_expressions:
-                        if isinstance(select_expression.this, exp.Identifier) and select_expression.this.name.lower() == identifier_name:
-                            aggregate = random.choice([exp.Max, exp.Min])
-                            select_expression.set("this", aggregate(this=expression_to_remove.copy()))
-                group_expressions.remove(expression_to_remove)
+                for select_expression in statement.expressions:
+                    if isinstance(select_expression.this, exp.Identifier) and select_expression.this.name.lower() == identifier_name:
+                        aggregate = random.choice([exp.Max, exp.Min])
+                        select_expression.set("this", aggregate(this=expression_to_remove.copy()))
+            group_expressions.remove(expression_to_remove)        
 
+    def get_agg_valid_targets(self, statement: exp.Select) -> List[Tuple[exp.AggFunc, str]]:
+        targets = [(agg, "SELECT") for expr in statement.args.get("expressions", []) for agg in expr.find_all(exp.AggFunc)]
+        if statement.args.get("having"):
+            targets.extend([(agg, "HAVING") for agg in statement.args["having"].find_all(exp.AggFunc)])
+        return [(agg, loc) for agg, loc in targets if agg.this is not None and not isinstance(agg.this, exp.Star)]
+    
     def collect_mutations_aggregate_function(self, statement: exp.Select, statement_index: int):
-        targets = []
-        for expr in statement.args.get("expressions", []):
-            targets.extend([(agg, "SELECT") for agg in expr.find_all(exp.AggFunc)])
-        having_clause = statement.args.get("having")
-        if having_clause:
-            targets.extend([(agg, "HAVING") for agg in having_clause.find_all(exp.AggFunc)])
-        # We cannot mutate COUNT(*) since SUM(*) and AVG(*) are not valid, so we filter out those cases.
-        valid_targets = [t for t in targets if t[0].this is not None and not isinstance(t[0].this, exp.Star)]
-        if not valid_targets:
+        # We first collect all valid aggregate function targets in the SELECT and HAVING clauses.
+        # For example, COUNT(*) cannot be mutated since SUM(*) and AVG(*) are not valid.
+        targets = self.get_agg_valid_targets(statement)
+        if not targets:
             return []
         
-        aggregation_target, location = random.choice(valid_targets)
-        desc = f"[Statement {statement_index}] Mutate the aggregate function {aggregation_target} in the {location} clause."
-        return [(lambda _: self.mutate_aggregate_function(aggregation_target, location), desc)]
+        mutations = []
+        for target_idx, (agg, location) in enumerate(targets):
+            arg = agg.this
+            # Knowing the type of the argument can help us do more mutations.
+            # TODO: We can potentially infer more types based on the schema.
+            is_char = isinstance(arg, exp.Literal) and arg.is_string
+            # COUNT(string) in HAVING compared to a number must stay as COUNT to remain valid.
+            if location == "HAVING" and is_char and isinstance(agg, exp.Count):
+                parent = agg.parent
+                if isinstance(parent, (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ)):
+                    other = parent.right if parent.left is agg else parent.left
+                    if isinstance(other, exp.Literal) and other.is_number:
+                        continue
+            agg_types = [exp.Max, exp.Min, exp.Count] if is_char else [exp.Max, exp.Min, exp.Avg, exp.Sum, exp.Count]
+            current_type = type(agg)
+            current_distinct = bool(agg.args.get("distinct"))
+            for agg_type in agg_types:
+                for distinct in [True, False]:
+                    if agg_type == current_type and distinct == current_distinct:
+                        continue
+                    desc = (f"[Statement {statement_index}] Replace {current_type}{'(DISTINCT)' if current_distinct else ''} "
+                            f"with {agg_type}{'(DISTINCT)' if distinct else ''} in {location}.")
+                    mutations.append((
+                        lambda block, si=statement_index, ti=target_idx, c=agg_type, d=distinct:
+                            self.mutate_aggregate_function(self.get_agg_valid_targets(block.expressions[si])[ti][0], c, d), desc))
+        return mutations
 
-    def mutate_aggregate_function(self, aggregate_target: exp.AggFunc, location: str):
-        # We identify the data type of the argument to the aggregate function.
-        # This allows us to make sure that the query is valid.
-        arg = aggregate_target.this 
-        is_char = False
-        if isinstance(arg, exp.Literal) and arg.is_string:
-            is_char = True
-        
-        if location == "HAVING" and is_char and isinstance(aggregate_target, exp.Count):
-            parent = aggregate_target.parent
-            if isinstance(parent, (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ)):
-                other_operand = parent.right if parent.left is aggregate_target else parent.left
-                if isinstance(other_operand, exp.Literal) and other_operand.is_number:
-                    return
-                    
-        agg_classes = [exp.Max, exp.Min, exp.Avg, exp.Sum, exp.Count]
-        if is_char:
-            agg_classes = [exp.Max, exp.Min, exp.Count]  
-        current_cls = type(aggregate_target)
-        current_distinct = bool(aggregate_target.args.get("distinct"))
-        
-        options = []
-        for cls in agg_classes:
-            for distinct in [True, False]:
-                if cls == current_cls and distinct == current_distinct:
-                    continue
-                options.append((cls, distinct))        
-        if not options:
-            return
-            
-        new_cls, new_distinct = random.choice(options)
-        new_agg = new_cls(this=arg.copy())
+    def mutate_aggregate_function(self, aggregate_target: exp.AggFunc, new_type: type, new_distinct: bool):
+        new_agg = new_type(this=aggregate_target.this.copy())
         if new_distinct:
             new_agg.set("distinct", exp.Distinct())
         aggregate_target.replace(new_agg)
     
     ############################### OR: Operator Replacement Mutations ###############################
-
-    def _mutate_ror(self, statement: exp.Select, context: List[exp.Expr]) -> str:
+    def collect_mutations_ror(self, statement: exp.Select, statement_index: int):
         """ROR - Relational operator replacement"""
-        # Targeting WHERE and HAVING clauses
         targets = []
         for clause in [statement.args.get("where"), statement.args.get("having")]:
             if clause:
-                targets.extend(list(clause.find_all(
-                    exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE
-                )))
-        
+                targets.extend(clause.find_all(exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE))
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
         relational_classes = [exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE]
-        
-        # Options: (1) Other operators, (2) falseop, (3) trueop
-        options = [cls for cls in relational_classes if not isinstance(target, cls)]
+        options = [cls for cls in relational_classes if not isinstance(targets[target_idx], cls)]
         options.extend(["falseop", "trueop"])
-        
         choice = random.choice(options)
-        
+        desc = f"[Statement {statement_index}] ROR: Replace relational operator with {choice if isinstance(choice, str) else choice.__name__}."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            stmt = block.expressions[si]
+            fresh_targets = []
+            for clause in [stmt.args.get("where"), stmt.args.get("having")]:
+                if clause:
+                    fresh_targets.extend(clause.find_all(exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE))
+            self.mutate_ror(fresh_targets[ti], c)
+        return [(apply, desc)]
+
+    def mutate_ror(self, target: exp.Expr, choice):
         if choice == "falseop":
             target.replace(exp.false())
-            return "ROR: Replaced relational operator with FALSE."
         elif choice == "trueop":
             target.replace(exp.true())
-            return "ROR: Replaced relational operator with TRUE."
         else:
-            new_node = choice(this=target.left.copy(), expression=target.right.copy())
-            target.replace(new_node)
-            return f"ROR: Replaced relational operator with {choice.__name__}."
+            target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
-    def _mutate_lcr(self, statement: exp.Select, context: List[exp.Expr]) -> str:
-        """LCR - Logical connector operator"""
+    def collect_mutations_lcr(self, statement: exp.Select, statement_index: int):
+        """LCR - Logical connector replacement"""
         targets = []
         for clause in [statement.args.get("where"), statement.args.get("having")]:
             if clause:
-                targets.extend(list(clause.find_all(exp.And, exp.Or)))
-                
+                targets.extend(clause.find_all(exp.And, exp.Or))
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
-        
-        # Options: (1) Other operator, (2) falseop, (3) trueop, (4) leftop, (5) rightop
-        options = [
-            exp.Or if isinstance(target, exp.And) else exp.And,
-            "falseop", "trueop", "leftop", "rightop"
-        ]
-        
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
+        target = targets[target_idx]
+        options = [exp.Or if isinstance(target, exp.And) else exp.And, "falseop", "trueop", "leftop", "rightop"]
         choice = random.choice(options)
-        
+        desc = f"[Statement {statement_index}] LCR: Replace logical connector with {choice if isinstance(choice, str) else choice.__name__}."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            stmt = block.expressions[si]
+            fresh_targets = []
+            for clause in [stmt.args.get("where"), stmt.args.get("having")]:
+                if clause:
+                    fresh_targets.extend(clause.find_all(exp.And, exp.Or))
+            self.mutate_lcr(fresh_targets[ti], c)
+        return [(apply, desc)]
+
+    def mutate_lcr(self, target: exp.Expr, choice):
         if choice == "falseop":
             target.replace(exp.false())
         elif choice == "trueop":
@@ -313,20 +364,14 @@ class ASTMutator:
         elif choice == "rightop":
             target.replace(target.right.copy())
         else:
-            new_node = choice(this=target.left.copy(), expression=target.right.copy())
-            target.replace(new_node)
-            
-        return f"LCR: Mutated logical connector ({choice if isinstance(choice, str) else choice.__name__})."
+            target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
     def _get_valid_arithmetic_targets(self, statement: exp.Select) -> List[exp.Expr]:
-        """Helper to find valid targets for UOI and ABS."""
+        """Find numeric literals and arithmetic expressions, excluding GROUP BY / ORDER BY / EXISTS select lists."""
         targets = []
         for node in statement.find_all(exp.Literal, exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod):
-            # Only consider numeric literals or arithmetic expressions
             if isinstance(node, exp.Literal) and not node.is_number:
                 continue
-                
-            # Exclude GROUP BY, ORDER BY, and SELECT lists of EXISTS
             is_excluded = False
             current = node
             while current:
@@ -334,7 +379,6 @@ class ASTMutator:
                     is_excluded = True
                     break
                 if isinstance(current, exp.Exists):
-                    # Check if it's inside the select list of the EXISTS subquery
                     if current.this and current.this.args.get("expressions"):
                         for expr in current.this.args.get("expressions"):
                             if expr == node or node in list(expr.find_all(type(node))):
@@ -342,154 +386,135 @@ class ASTMutator:
                                 break
                     break
                 current = current.parent
-                
             if not is_excluded:
                 targets.append(node)
         return targets
 
-    def _mutate_uoi(self, statement: exp.Select, context: List[exp.Expr]) -> str:
-        """UOI - Unary Operator Insertion"""
+    def collect_mutations_uoi(self, statement: exp.Select, statement_index: int):
+        """UOI - Unary operator insertion"""
         targets = self._get_valid_arithmetic_targets(statement)
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
-        
-        # Options: -e, e+1, e-1
-        options = ["negate", "add1", "sub1"]
-        choice = random.choice(options)
-        
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
+        choice = random.choice(["negate", "add1", "sub1"])
+        desc = f"[Statement {statement_index}] UOI: Apply {choice} to arithmetic expression."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            self.mutate_uoi(self._get_valid_arithmetic_targets(block.expressions[si])[ti], c)
+        return [(apply, desc)]
+
+    def mutate_uoi(self, target: exp.Expr, choice: str):
         if choice == "negate":
             target.replace(exp.Neg(this=target.copy()))
         elif choice == "add1":
             target.replace(exp.Add(this=target.copy(), expression=exp.Literal.number(1)))
         elif choice == "sub1":
             target.replace(exp.Sub(this=target.copy(), expression=exp.Literal.number(1)))
-            
-        return f"UOI: Applied {choice} to arithmetic expression."
 
-    def _mutate_abs(self, statement: exp.Select, context: List[exp.Expr]) -> str:
-        """ABS - Absolute Value Insertion"""
+    def collect_mutations_abs(self, statement: exp.Select, statement_index: int):
+        """ABS - Absolute value insertion"""
         targets = self._get_valid_arithmetic_targets(statement)
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
         choice = random.choice(["abs", "neg_abs"])
-        
+        desc = f"[Statement {statement_index}] ABS: Apply {choice} to arithmetic expression."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            self.mutate_abs(self._get_valid_arithmetic_targets(block.expressions[si])[ti], c)
+        return [(apply, desc)]
+
+    def mutate_abs(self, target: exp.Expr, choice: str):
         abs_func = exp.func("ABS", target.copy())
-        
         if choice == "abs":
             target.replace(abs_func)
         elif choice == "neg_abs":
             target.replace(exp.Neg(this=abs_func))
-            
-        return f"ABS: Applied {choice} to arithmetic expression."
 
-    def _mutate_aor(self, statement: exp.Select, context: List[exp.Expr]) -> str:
+    def collect_mutations_aor(self, statement: exp.Select, statement_index: int):
         """AOR - Arithmetic operator replacement"""
         targets = list(statement.find_all(exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod))
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
         arithmetic_classes = [exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod]
-        
-        options = [cls for cls in arithmetic_classes if not isinstance(target, cls)]
+        options = [cls for cls in arithmetic_classes if not isinstance(targets[target_idx], cls)]
         options.extend(["leftop", "rightop"])
-        
         choice = random.choice(options)
-        
+        desc = f"[Statement {statement_index}] AOR: Replace arithmetic operator with {choice if isinstance(choice, str) else choice.__name__}."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            fresh_targets = list(block.expressions[si].find_all(exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod))
+            self.mutate_aor(fresh_targets[ti], c)
+        return [(apply, desc)]
+
+    def mutate_aor(self, target: exp.Expr, choice):
         if choice == "leftop":
             target.replace(target.left.copy())
         elif choice == "rightop":
             target.replace(target.right.copy())
         else:
-            new_node = choice(this=target.left.copy(), expression=target.right.copy())
-            target.replace(new_node)
-            
-        return "AOR: Mutated arithmetic operator."
+            target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
-    def _mutate_btw(self, statement: exp.Select, context: List[exp.Expr]) -> str:
-        """BTW - Between predicate"""
+    def collect_mutations_btw(self, statement: exp.Select, statement_index: int):
+        """BTW - Between predicate replacement"""
         targets = list(statement.find_all(exp.Between))
         if not targets:
-            return "None"
-            
-        target = random.choice(targets)
-        a = target.this.copy()
-        x = target.args.get("low").copy()
-        y = target.args.get("high").copy()
-        is_not = isinstance(target.parent, exp.Not)
-        
-        # Options: 
-        # (1) a > x AND a <= y
-        # (2) a >= x AND a < y
+            return []
+        target_idx = random.randint(0, len(targets) - 1)
+        # Options: (1) a > x AND a <= y  (2) a >= x AND a < y
         choice = random.choice([1, 2])
-        
+        desc = f"[Statement {statement_index}] BTW: Replace BETWEEN with explicit inequalities (Option {choice})."
+        def apply(block, si=statement_index, ti=target_idx, c=choice):
+            fresh_targets = list(block.expressions[si].find_all(exp.Between))
+            self.mutate_btw(fresh_targets[ti], c)
+        return [(apply, desc)]
+
+    def mutate_btw(self, target: exp.Between, choice: int):
+        a, x, y = target.this.copy(), target.args["low"].copy(), target.args["high"].copy()
+        is_not = isinstance(target.parent, exp.Not)
         if choice == 1:
-            cond = exp.And(this=exp.GT(this=a.copy(), expression=x), 
-                           expression=exp.LTE(this=a.copy(), expression=y))
+            cond = exp.And(this=exp.GT(this=a.copy(), expression=x), expression=exp.LTE(this=a.copy(), expression=y))
         else:
-            cond = exp.And(this=exp.GTE(this=a.copy(), expression=x), 
-                           expression=exp.LT(this=a.copy(), expression=y))
-                           
+            cond = exp.And(this=exp.GTE(this=a.copy(), expression=x), expression=exp.LT(this=a.copy(), expression=y))
         if is_not:
-            cond = exp.Not(this=cond)
-            target.parent.replace(cond)
+            target.parent.replace(exp.Not(this=cond))
         else:
             target.replace(cond)
-            
-        return f"BTW: Replaced BETWEEN with explicit inequalities (Option {choice})."
 
-    def _mutate_lke(self, statement: exp.Select, context: List[exp.Expr]) -> str:
-        """LKE - Like predicate"""
-        targets = list(statement.find_all(exp.Like, exp.ILike))
-        # Filter for targets where the right side is a static string literal
-        valid_targets = [t for t in targets if isinstance(t.expression, exp.Literal) and t.expression.is_string]
-        
+    def collect_mutations_lke(self, statement: exp.Select, statement_index: int):
+        """LKE - Like predicate pattern mutation"""
+        all_targets = list(statement.find_all(exp.Like, exp.ILike))
+        valid_targets = [t for t in all_targets if isinstance(t.expression, exp.Literal) and t.expression.is_string]
         if not valid_targets:
-            return "None"
-            
-        target = random.choice(valid_targets)
-        pattern = target.expression.name
-        
+            return []
+        target_idx = random.randint(0, len(valid_targets) - 1)
+        pattern = valid_targets[target_idx].expression.name
         if not pattern:
-            return "None"
-            
-        wildcards = [(i, char) for i, char in enumerate(pattern) if char in ('%', '_')]
+            return []
+        wildcards = [(i, ch) for i, ch in enumerate(pattern) if ch in ('%', '_')]
         mutations = []
-        
-        # Build possible string mutations based on wildcard presence
         if wildcards:
             idx, char = random.choice(wildcards)
-            other_char = '_' if char == '%' else '%'
-            
-            # (1) Remove wildcard
+            other = '_' if char == '%' else '%'
             mutations.append(pattern[:idx] + pattern[idx+1:])
-            # (2) Swap wildcard
-            mutations.append(pattern[:idx] + other_char + pattern[idx+1:])
-            # (3) Remove char before
+            mutations.append(pattern[:idx] + other + pattern[idx+1:])
             if idx > 0 and pattern[idx-1] not in ('%', '_'):
                 mutations.append(pattern[:idx-1] + pattern[idx:])
-            # (4) Remove char after
             if idx < len(pattern) - 1 and pattern[idx+1] not in ('%', '_'):
                 mutations.append(pattern[:idx+1] + pattern[idx+2:])
-        
-        # (5) Add wildcard at beginning if not present
         if not pattern.startswith(('%', '_')):
-            mutations.append('%' + pattern)
-            mutations.append('_' + pattern)
-            
-        # (6) Add wildcard at end if not present
+            mutations += ['%' + pattern, '_' + pattern]
         if not pattern.endswith(('%', '_')):
-            mutations.append(pattern + '%')
-            mutations.append(pattern + '_')
-            
+            mutations += [pattern + '%', pattern + '_']
         if not mutations:
-            return "None"
-            
+            return []
         new_pattern = random.choice(mutations)
+        desc = f"[Statement {statement_index}] LKE: Mutate LIKE pattern from '{pattern}' to '{new_pattern}'."
+        def apply(block, si=statement_index, ti=target_idx, np=new_pattern):
+            stmt = block.expressions[si]
+            fresh_all = list(stmt.find_all(exp.Like, exp.ILike))
+            fresh_valid = [t for t in fresh_all if isinstance(t.expression, exp.Literal) and t.expression.is_string]
+            self.mutate_lke(fresh_valid[ti], np)
+        return [(apply, desc)]
+
+    def mutate_lke(self, target: exp.Expr, new_pattern: str):
         target.expression.set("this", new_pattern)
-        
-        return f"LKE: Mutated LIKE wildcard pattern."
+
