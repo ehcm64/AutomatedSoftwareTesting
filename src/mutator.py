@@ -40,7 +40,7 @@ class ASTMutator:
                 return (block.sql(dialect=self.dialect), mutation_description)
             return (query, "None")
 
-    def build_local_schema(self, context_statements: list[exp.Expr]) -> dict[str, list[str]]:
+    def build_local_schema(self, context_statements: List[exp.Expr]) -> dict[str, List[Tuple[str, str]]]:
         local_schema = {}
         for statement in context_statements:
             if isinstance(statement, exp.Create):
@@ -49,10 +49,13 @@ class ASTMutator:
                 table_name = table.name.lower()
                 columns = []
                 for column in statement.this.expressions:
+                    column_type: str | None = column.args.get("kind")
+                    if column_type is not None:
+                        column_type = "UNKNOWN"
                     if isinstance(column, exp.ColumnDef):
-                        columns.append(column.this.name.lower())
+                        columns.append((column.this.name.lower(), column_type))
                     if isinstance(column, exp.Identifier):
-                        columns.append(column.name.lower())
+                        columns.append((column.name.lower(), column_type))
                 local_schema[table_name] = columns
         return local_schema
 
@@ -63,6 +66,10 @@ class ASTMutator:
             available_mutations.append(self._mutate_join_clause)
         if list(statement.find_all(exp.In, exp.Exists, exp.Any, exp.All)):
             available_mutations.append(self._mutate_subqeury_predicate)
+        if statement.args.get("group") is not None:
+            available_mutations.append(self._mutate_group_by_clause)
+        if list(statement.find_all(exp.AggFunc)):
+            available_mutations.append(self._mutate_aggregate_function)
         mutation_to_apply = random.choice(available_mutations)
         return mutation_to_apply(statement, context) 
     
@@ -96,8 +103,8 @@ class ASTMutator:
                 logger.warning(f"Cannot add a join condition for tables {base_table} and {join_table}" +
                                f" for query {self.query_id} since they are not in the local schema or don't have columns.")
                 return "None"
-            base_col = local_schema[base_table][0]
-            join_col = local_schema[join_table][0]
+            base_col = local_schema[base_table][0][0]
+            join_col = local_schema[join_table][0][0]
             condition_sql = f"{base_table}.{base_col} = {join_table}.{join_col}"
             join_current.set("using", None)
             join_current.set("on", exp.condition(condition_sql))
@@ -138,3 +145,89 @@ class ASTMutator:
                 else:
                     target.replace(exp.Not(this=new_exists) if is_not_exists else new_exists)
         return "Mutated a subquery predicate."
+    
+    def _mutate_group_by_clause(self, statement: exp.Select, context: List[exp.Expr]) -> str:
+        group = statement.args.get("group")
+        assert group is not None, "Expected to have a GROUP BY clause in order to mutate it."
+        group_expressions = group.expressions
+        if len(group_expressions) == 1:
+            statement.set("group", None)
+            statement.set("having", None)
+        else:
+            expression_to_remove = random.choice(group_expressions)
+            # In order to remove an expression from the GROUP BY clause
+            # and keep the query valid, we also need to check if it is ia present in
+            # the SELECT clause and the ORDER BY clause. If it's there, we will
+            # wrap it in an aggregate function instead of removing it.
+            order_by = statement.args.get("order")
+            if order_by is not None:
+                for order_expression in order_by.expressions:
+                    if order_expression.this == expression_to_remove:
+                        aggregate = random.choice([exp.Max, exp.Min])
+                        order_expression.set("this", aggregate(this=expression_to_remove.copy()))
+            select_expressions = statement.args.get("expressions")
+            if select_expressions is not None:
+                for select_expression in select_expressions:
+                    if select_expression.this == expression_to_remove:
+                        aggregate = random.choice([exp.Max, exp.Min])
+                        select_expression.set("this", aggregate(this=expression_to_remove.copy()))
+            group_expressions.remove(expression_to_remove)
+        return "Mutated the GROUP BY clause"
+
+    def _mutate_aggregate_function(self, statement: exp.Select, context: List[exp.Expr]) -> str:
+        targets = []
+        for expr in statement.args.get("expressions", []):
+            targets.extend([(agg, "SELECT") for agg in expr.find_all(exp.AggFunc)])
+        having_clause = statement.args.get("having")
+        if having_clause:
+            targets.extend([(agg, "HAVING") for agg in having_clause.find_all(exp.AggFunc)])  
+        if not targets: return "None"
+            
+        target_agg, location = random.choice(targets)
+        arg = target_agg.this
+        if arg is None or isinstance(arg, exp.Star):
+            # We won't mutate COUNT(*) since SUM(*) and AVG(*).
+            return "None"
+            
+        # We identify the data type of the argument to the aggregate function.
+        # This allows us to make sure that the query is valid.
+        is_char = False
+        if isinstance(arg, exp.Literal) and arg.is_string:
+            is_char = True
+        elif isinstance(arg, exp.Column):
+            local_schema = self.build_local_schema(context)
+            col_name = arg.name.lower()
+            for _, cols in local_schema.items():
+                for c_name, c_type in cols:
+                    if c_name == col_name and c_type and c_type.upper() in ("VARCHAR", "CHAR", "TEXT", "STRING"):
+                        is_char = True
+                        break
+        
+        if location == "HAVING" and is_char and isinstance(target_agg, exp.Count):
+            parent = target_agg.parent
+            if isinstance(parent, (exp.GT, exp.GTE, exp.LT, exp.LTE, exp.EQ, exp.NEQ)):
+                other_operand = parent.right if parent.left is target_agg else parent.left
+                if isinstance(other_operand, exp.Literal) and other_operand.is_number:
+                    return "None"
+                    
+        agg_classes = [exp.Max, exp.Min, exp.Avg, exp.Sum, exp.Count]
+        if is_char:
+            agg_classes = [exp.Max, exp.Min, exp.Count]  
+        current_cls = type(target_agg)
+        current_distinct = bool(target_agg.args.get("distinct"))
+        
+        options = []
+        for cls in agg_classes:
+            for distinct in [True, False]:
+                if cls == current_cls and distinct == current_distinct:
+                    continue
+                options.append((cls, distinct))        
+        if not options:
+            return "None"
+            
+        new_cls, new_distinct = random.choice(options)
+        new_agg = new_cls(this=arg.copy())
+        if new_distinct:
+            new_agg.set("distinct", exp.Distinct())            
+        target_agg.replace(new_agg)
+        return "Mutated an aggregate function"
