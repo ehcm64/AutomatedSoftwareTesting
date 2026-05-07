@@ -13,7 +13,7 @@ SQLITE_PATCHED_VERSION_PATH = "/usr/bin/sqlite3-3.39.4"
 SQLITE_ORIGINAL_VERSION_PATH = "/usr/bin/sqlite3"
 SEED_DIR = "./seeds"
 SQL_DIALECT = "sqlite"
-EXCLUDED_SEEDS = ["autoindex-1-3.sql", "select7-3.sql"]
+EXCLUDED_SEEDS = ["autoindex-1-3.sql", "select7-3.sql", "autoindex-5-2.sql"]
 
 class SQLFuzzer:
     def __init__(self, seed_dir: str = SEED_DIR):
@@ -104,11 +104,10 @@ class SQLFuzzer:
         while True:
             if generated > 1e5 or len(self.pool_list) == 0:
                 break
-            current_query, current_index = self.pool_list.pop()
+            current_query, current_index = self.pool_list.pop(0)
             for _ in range(10):
-                mutated_query, _ = self.mutator.mutate(current_query, current_index)
-
-                if mutated_query in self.pool_set:
+                mutated_query, mutation_description = self.mutator.mutate(current_query, current_index)
+                if mutation_description == "None" or mutated_query in self.pool_set:
                     continue
                 generated += 1
                 self.report_query(mutated_query, id=str(generated), parent=current_index)
