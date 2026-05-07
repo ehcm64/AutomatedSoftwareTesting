@@ -17,7 +17,7 @@ SQLITE_PATCHED_VERSION_PATH = "/home/test/sqlite3-src/sqlite3"
 SQLITE_ORIGINAL_VERSION_PATH = "/usr/bin/sqlite3"
 SEED_DIR = "./seeds"
 SQL_DIALECT = "sqlite"
-EXCLUDED_SEEDS = ["autoindex-1-3.sql", "select7-3.sql", "autoindex-5-2.sql"]
+EXCLUDED_SEEDS = []
 
 class SQLFuzzer:
     def __init__(self, seed_dir: str = SEED_DIR):
@@ -116,9 +116,9 @@ class SQLFuzzer:
                 break
             # Pick a random query from the corpus.
             base_query, base_query_id = random.choice(self.pool)
-            for _ in range(10):
-                mutated_query, mutation_description = self.mutator.mutate(base_query, base_query_id)
-                if mutation_description == "None" or mutated_query in self.generated_queries:
+            mutated_queries = self.mutator.mutate(base_query, base_query_id, 1)
+            for mutated_query in mutated_queries:
+                if mutated_query in self.generated_queries:
                     continue
                 queries_generated_count += 1
                 self.report_query(mutated_query, id=str(queries_generated_count), parent=base_query_id)
@@ -133,8 +133,8 @@ class SQLFuzzer:
                         current_cov = self.coverage_tracker.get_coverage_count()
                         logger.debug(f"New coverage discovered at query {queries_generated_count}! Total basic blocks hit: {current_cov}. Adding to corpus.")
                         self.pool.append((mutated_query, str(queries_generated_count)))
-            if queries_generated_count % 100 == 0:
-                logger.info(f"Progress: {queries_generated_count}/{max_queries} queries generated. Corpus size: {len(self.pool)}.")
+                if queries_generated_count % 100 == 0:
+                    logger.info(f"Progress: {queries_generated_count}/{max_queries} queries generated. Corpus size: {len(self.pool)}.")
         
         logger.info(f"Finished generating {queries_generated_count} queries. Final corpus size: {len(self.pool)}.")
         logger.info(get_performance_stats(self.statistics.total_queries))
