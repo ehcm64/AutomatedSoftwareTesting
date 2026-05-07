@@ -74,25 +74,25 @@ class ASTMutator:
                 available_mutations.extend(self.collect_mutations_aggregate_function(statement, i))
 
                 # # Mutation 6: Replace a relational operator (=, <>, <, <=, >, >=).
-                # available_mutations.extend(self.collect_mutations_ror(statement, i))
+                available_mutations.extend(self.collect_mutations_relational_operator(statement, i))
 
-                # # Mutation 7: Replace a logical connector (AND, OR).
-                # available_mutations.extend(self.collect_mutations_lcr(statement, i))
+                # Mutation 7: Replace a logical operator (AND, OR).
+                available_mutations.extend(self.collect_mutations_logical_operator(statement, i))
 
-                # # Mutation 8: Insert a unary operator (+1, -1, negate) on an arithmetic expression.
-                # available_mutations.extend(self.collect_mutations_uoi(statement, i))
+                # Mutation 8: Insert a unary operator (+1, -1, negate) on an arithmetic expression.
+                available_mutations.extend(self.collect_mutations_unary_operator(statement, i))
 
-                # # Mutation 9: Wrap an arithmetic expression in ABS or -ABS.
-                # available_mutations.extend(self.collect_mutations_abs(statement, i))
+                # Mutation 9: Wrap an arithmetic expression in ABS or -ABS.
+                available_mutations.extend(self.collect_mutations_absolute_value(statement, i))
 
-                # # Mutation 10: Replace an arithmetic operator (+, -, *, /, %).
-                # available_mutations.extend(self.collect_mutations_aor(statement, i))
+                # Mutation 10: Replace an arithmetic operator (+, -, *, /, %).
+                available_mutations.extend(self.collect_mutations_arithmetic_operator(statement, i))
 
-                # # Mutation 11: Replace BETWEEN with explicit inequalities.
-                # available_mutations.extend(self.collect_mutations_btw(statement, i))
+                # Mutation 11: Replace BETWEEN with explicit inequalities.
+                available_mutations.extend(self.collect_mutations_between(statement, i))
 
-                # # Mutation 12: Mutate a LIKE/ILIKE wildcard pattern.
-                # available_mutations.extend(self.collect_mutations_lke(statement, i))
+                # Mutation 12: Mutate a LIKE/ILIKE wildcard pattern.
+                available_mutations.extend(self.collect_mutations_like_patterns(statement, i))
         return available_mutations
 
     def update_schema(self, statement: exp.Expr, query_id: str):
@@ -300,31 +300,33 @@ class ASTMutator:
             new_agg.set("distinct", exp.Distinct())
         aggregate_target.replace(new_agg)
     
-    ############################### OR: Operator Replacement Mutations ###############################
-    def collect_mutations_ror(self, statement: exp.Select, statement_index: int):
-        """ROR - Relational operator replacement"""
+    ############################### Operator Replacement Mutations ###############################
+    def collect_mutations_relational_operator(self, statement: exp.Select, statement_index: int):
         targets = []
         for clause in [statement.args.get("where"), statement.args.get("having")]:
             if clause:
                 targets.extend(clause.find_all(exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE))
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
-        relational_classes = [exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE]
-        options = [cls for cls in relational_classes if not isinstance(targets[target_idx], cls)]
-        options.extend(["falseop", "trueop"])
-        choice = random.choice(options)
-        desc = f"[Statement {statement_index}] ROR: Replace relational operator with {choice if isinstance(choice, str) else choice.__name__}."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            stmt = block.expressions[si]
-            fresh_targets = []
-            for clause in [stmt.args.get("where"), stmt.args.get("having")]:
-                if clause:
-                    fresh_targets.extend(clause.find_all(exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE))
-            self.mutate_ror(fresh_targets[ti], c)
-        return [(apply, desc)]
+        relational_operators = [exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE]
+        mutations = []
+        for target_idx, target in enumerate(targets):
+            options = [op for op in relational_operators if not isinstance(target, op)]
+            options.extend(["falseop", "trueop"])
+            for choice in options:
+                choice_name = choice if isinstance(choice, str) else choice.__name__
+                desc = f"[Statement {statement_index}] Replace relational operator at index {target_idx} with {choice_name}."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    stmt = block.expressions[si]
+                    targets_copy = []
+                    for clause in [stmt.args.get("where"), stmt.args.get("having")]:
+                        if clause:
+                            targets_copy.extend(clause.find_all(exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE))
+                    self.mutate_relational_operator(targets_copy[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_ror(self, target: exp.Expr, choice):
+    def mutate_relational_operator(self, target: exp.EQ | exp.NEQ | exp.LT | exp.LTE | exp.GT | exp.GTE, choice):
         if choice == "falseop":
             target.replace(exp.false())
         elif choice == "trueop":
@@ -332,29 +334,30 @@ class ASTMutator:
         else:
             target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
-    def collect_mutations_lcr(self, statement: exp.Select, statement_index: int):
-        """LCR - Logical connector replacement"""
+    def collect_mutations_logical_operator(self, statement: exp.Select, statement_index: int):
         targets = []
         for clause in [statement.args.get("where"), statement.args.get("having")]:
             if clause:
                 targets.extend(clause.find_all(exp.And, exp.Or))
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
-        target = targets[target_idx]
-        options = [exp.Or if isinstance(target, exp.And) else exp.And, "falseop", "trueop", "leftop", "rightop"]
-        choice = random.choice(options)
-        desc = f"[Statement {statement_index}] LCR: Replace logical connector with {choice if isinstance(choice, str) else choice.__name__}."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            stmt = block.expressions[si]
-            fresh_targets = []
-            for clause in [stmt.args.get("where"), stmt.args.get("having")]:
-                if clause:
-                    fresh_targets.extend(clause.find_all(exp.And, exp.Or))
-            self.mutate_lcr(fresh_targets[ti], c)
-        return [(apply, desc)]
+        mutations = []
+        for target_idx, target in enumerate(targets):
+            options = [exp.Or if isinstance(target, exp.And) else exp.And, "falseop", "trueop", "leftop", "rightop"]
+            for choice in options:
+                choice_name = choice if isinstance(choice, str) else choice.__name__
+                desc = f"[Statement {statement_index}] Replace logical operator at index {target_idx} with {choice_name}."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    stmt = block.expressions[si]
+                    fresh_targets = []
+                    for clause in [stmt.args.get("where"), stmt.args.get("having")]:
+                        if clause:
+                            fresh_targets.extend(clause.find_all(exp.And, exp.Or))
+                    self.mutate_logical_operator(fresh_targets[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_lcr(self, target: exp.Expr, choice):
+    def mutate_logical_operator(self, target: exp.And | exp.Or, choice):
         if choice == "falseop":
             target.replace(exp.false())
         elif choice == "trueop":
@@ -366,8 +369,7 @@ class ASTMutator:
         else:
             target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
-    def _get_valid_arithmetic_targets(self, statement: exp.Select) -> List[exp.Expr]:
-        """Find numeric literals and arithmetic expressions, excluding GROUP BY / ORDER BY / EXISTS select lists."""
+    def get_valid_arithmetic_targets(self, statement: exp.Select) -> List[exp.Expr]:
         targets = []
         for node in statement.find_all(exp.Literal, exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod):
             if isinstance(node, exp.Literal) and not node.is_number:
@@ -390,19 +392,20 @@ class ASTMutator:
                 targets.append(node)
         return targets
 
-    def collect_mutations_uoi(self, statement: exp.Select, statement_index: int):
-        """UOI - Unary operator insertion"""
-        targets = self._get_valid_arithmetic_targets(statement)
+    def collect_mutations_unary_operator(self, statement: exp.Select, statement_index: int):
+        targets = self.get_valid_arithmetic_targets(statement)
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
-        choice = random.choice(["negate", "add1", "sub1"])
-        desc = f"[Statement {statement_index}] UOI: Apply {choice} to arithmetic expression."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            self.mutate_uoi(self._get_valid_arithmetic_targets(block.expressions[si])[ti], c)
-        return [(apply, desc)]
+        mutations = []
+        for target_idx in range(len(targets)):
+            for choice in ["negate", "add1", "sub1"]:
+                desc = f"[Statement {statement_index}] Apply {choice} to arithmetic expression at index {target_idx}."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    self.mutate_unary_operator(self.get_valid_arithmetic_targets(block.expressions[si])[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_uoi(self, target: exp.Expr, choice: str):
+    def mutate_unary_operator(self, target: exp.Expr, choice: str):
         if choice == "negate":
             target.replace(exp.Neg(this=target.copy()))
         elif choice == "add1":
@@ -410,42 +413,45 @@ class ASTMutator:
         elif choice == "sub1":
             target.replace(exp.Sub(this=target.copy(), expression=exp.Literal.number(1)))
 
-    def collect_mutations_abs(self, statement: exp.Select, statement_index: int):
-        """ABS - Absolute value insertion"""
-        targets = self._get_valid_arithmetic_targets(statement)
+    def collect_mutations_absolute_value(self, statement: exp.Select, statement_index: int):
+        targets = self.get_valid_arithmetic_targets(statement)
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
-        choice = random.choice(["abs", "neg_abs"])
-        desc = f"[Statement {statement_index}] ABS: Apply {choice} to arithmetic expression."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            self.mutate_abs(self._get_valid_arithmetic_targets(block.expressions[si])[ti], c)
-        return [(apply, desc)]
+        mutations = []
+        for target_idx in range(len(targets)):
+            for choice in ["abs", "neg_abs"]:
+                desc = f"[Statement {statement_index}] Apply {choice} to arithmetic expression at index {target_idx}."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    self.mutate_absolute_value(self.get_valid_arithmetic_targets(block.expressions[si])[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_abs(self, target: exp.Expr, choice: str):
+    def mutate_absolute_value(self, target: exp.Expr, choice: str):
         abs_func = exp.func("ABS", target.copy())
         if choice == "abs":
             target.replace(abs_func)
         elif choice == "neg_abs":
             target.replace(exp.Neg(this=abs_func))
 
-    def collect_mutations_aor(self, statement: exp.Select, statement_index: int):
-        """AOR - Arithmetic operator replacement"""
+    def collect_mutations_arithmetic_operator(self, statement: exp.Select, statement_index: int):
         targets = list(statement.find_all(exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod))
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
         arithmetic_classes = [exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod]
-        options = [cls for cls in arithmetic_classes if not isinstance(targets[target_idx], cls)]
-        options.extend(["leftop", "rightop"])
-        choice = random.choice(options)
-        desc = f"[Statement {statement_index}] AOR: Replace arithmetic operator with {choice if isinstance(choice, str) else choice.__name__}."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            fresh_targets = list(block.expressions[si].find_all(exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod))
-            self.mutate_aor(fresh_targets[ti], c)
-        return [(apply, desc)]
+        mutations = []
+        for target_idx, target in enumerate(targets):
+            options = [cls for cls in arithmetic_classes if not isinstance(target, cls)]
+            options.extend(["leftop", "rightop"])
+            for choice in options:
+                choice_name = choice if isinstance(choice, str) else choice.__name__
+                desc = f"[Statement {statement_index}] Replace arithmetic operator at index {target_idx} with {choice_name}."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    fresh_targets = list(block.expressions[si].find_all(exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod))
+                    self.mutate_arithmetic_operator(fresh_targets[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_aor(self, target: exp.Expr, choice):
+    def mutate_arithmetic_operator(self, target: exp.Add | exp.Sub | exp.Mul | exp.Div | exp.Mod, choice):
         if choice == "leftop":
             target.replace(target.left.copy())
         elif choice == "rightop":
@@ -453,68 +459,64 @@ class ASTMutator:
         else:
             target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
 
-    def collect_mutations_btw(self, statement: exp.Select, statement_index: int):
-        """BTW - Between predicate replacement"""
+    def collect_mutations_between(self, statement: exp.Select, statement_index: int):
         targets = list(statement.find_all(exp.Between))
         if not targets:
             return []
-        target_idx = random.randint(0, len(targets) - 1)
-        # Options: (1) a > x AND a <= y  (2) a >= x AND a < y
-        choice = random.choice([1, 2])
-        desc = f"[Statement {statement_index}] BTW: Replace BETWEEN with explicit inequalities (Option {choice})."
-        def apply(block, si=statement_index, ti=target_idx, c=choice):
-            fresh_targets = list(block.expressions[si].find_all(exp.Between))
-            self.mutate_btw(fresh_targets[ti], c)
-        return [(apply, desc)]
+        mutations = []
+        for target_idx in range(len(targets)):
+            for choice in [1, 2]:
+                desc = f"[Statement {statement_index}] Replace BETWEEN at index {target_idx} with explicit inequalities (Option {choice})."
+                def apply(block, si=statement_index, ti=target_idx, c=choice):
+                    fresh_targets = list(block.expressions[si].find_all(exp.Between))
+                    self.mutate_between(fresh_targets[ti], c)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_btw(self, target: exp.Between, choice: int):
+    def mutate_between(self, target: exp.Between, choice: int):
         a, x, y = target.this.copy(), target.args["low"].copy(), target.args["high"].copy()
-        is_not = isinstance(target.parent, exp.Not)
         if choice == 1:
             cond = exp.And(this=exp.GT(this=a.copy(), expression=x), expression=exp.LTE(this=a.copy(), expression=y))
         else:
             cond = exp.And(this=exp.GTE(this=a.copy(), expression=x), expression=exp.LT(this=a.copy(), expression=y))
-        if is_not:
+        if isinstance(target.parent, exp.Not):
             target.parent.replace(exp.Not(this=cond))
         else:
             target.replace(cond)
 
-    def collect_mutations_lke(self, statement: exp.Select, statement_index: int):
-        """LKE - Like predicate pattern mutation"""
+    def collect_mutations_like_patterns(self, statement: exp.Select, statement_index: int):
         all_targets = list(statement.find_all(exp.Like, exp.ILike))
         valid_targets = [t for t in all_targets if isinstance(t.expression, exp.Literal) and t.expression.is_string]
         if not valid_targets:
             return []
-        target_idx = random.randint(0, len(valid_targets) - 1)
-        pattern = valid_targets[target_idx].expression.name
-        if not pattern:
-            return []
-        wildcards = [(i, ch) for i, ch in enumerate(pattern) if ch in ('%', '_')]
         mutations = []
-        if wildcards:
-            idx, char = random.choice(wildcards)
-            other = '_' if char == '%' else '%'
-            mutations.append(pattern[:idx] + pattern[idx+1:])
-            mutations.append(pattern[:idx] + other + pattern[idx+1:])
-            if idx > 0 and pattern[idx-1] not in ('%', '_'):
-                mutations.append(pattern[:idx-1] + pattern[idx:])
-            if idx < len(pattern) - 1 and pattern[idx+1] not in ('%', '_'):
-                mutations.append(pattern[:idx+1] + pattern[idx+2:])
-        if not pattern.startswith(('%', '_')):
-            mutations += ['%' + pattern, '_' + pattern]
-        if not pattern.endswith(('%', '_')):
-            mutations += [pattern + '%', pattern + '_']
-        if not mutations:
-            return []
-        new_pattern = random.choice(mutations)
-        desc = f"[Statement {statement_index}] LKE: Mutate LIKE pattern from '{pattern}' to '{new_pattern}'."
-        def apply(block, si=statement_index, ti=target_idx, np=new_pattern):
-            stmt = block.expressions[si]
-            fresh_all = list(stmt.find_all(exp.Like, exp.ILike))
-            fresh_valid = [t for t in fresh_all if isinstance(t.expression, exp.Literal) and t.expression.is_string]
-            self.mutate_lke(fresh_valid[ti], np)
-        return [(apply, desc)]
+        for target_idx, target in enumerate(valid_targets):
+            pattern = target.expression.name
+            if not pattern:
+                continue
+            new_patterns: set[str] = set()
+            wildcards = [(i, ch) for i, ch in enumerate(pattern) if ch in ('%', '_')]
+            for idx, char in wildcards:
+                other = '_' if char == '%' else '%'
+                new_patterns.add(pattern[:idx] + pattern[idx+1:])
+                new_patterns.add(pattern[:idx] + other + pattern[idx+1:])
+                if idx > 0 and pattern[idx-1] not in ('%', '_'):
+                    new_patterns.add(pattern[:idx-1] + pattern[idx:])
+                if idx < len(pattern) - 1 and pattern[idx+1] not in ('%', '_'):
+                    new_patterns.add(pattern[:idx+1] + pattern[idx+2:])
+            if not pattern.startswith(('%', '_')):
+                new_patterns.update(['%' + pattern, '_' + pattern])
+            if not pattern.endswith(('%', '_')):
+                new_patterns.update([pattern + '%', pattern + '_'])
+            for new_pattern in new_patterns:
+                desc = f"[Statement {statement_index}] Mutate LIKE pattern at index {target_idx} from '{pattern}' to '{new_pattern}'."
+                def apply(block, si=statement_index, ti=target_idx, np=new_pattern):
+                    stmt = block.expressions[si]
+                    fresh_all = list(stmt.find_all(exp.Like, exp.ILike))
+                    fresh_valid = [t for t in fresh_all if isinstance(t.expression, exp.Literal) and t.expression.is_string]
+                    self.mutate_like_pattern(fresh_valid[ti], np)
+                mutations.append((apply, desc))
+        return mutations
 
-    def mutate_lke(self, target: exp.Expr, new_pattern: str):
+    def mutate_like_pattern(self, target: exp.Expr, new_pattern: str):
         target.expression.set("this", new_pattern)
-
