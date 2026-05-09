@@ -7,7 +7,7 @@ RUN sudo apt update \
 RUN cd /home/test/sqlite3-src && \
     CFLAGS="-g -O0 --coverage -fsanitize=address,undefined -fno-omit-frame-pointer" \
     LDFLAGS="--coverage -fsanitize=address,undefined" \
-    ./configure && \
+    ./configure --enable-all && \
     ASAN_OPTIONS=detect_leaks=0 make -j$(nproc)
 
 WORKDIR /home/test/fuzzer
