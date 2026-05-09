@@ -1,0 +1,17 @@
+2026-05-09 15:45:54.100 | ERROR    | src.fuzzer:report_execution_result:106 - Execution result with status LOGICAL_BUG!
+Description:
+Patched output:
+1
+Original output:
+
+Query: ID None
+CREATE TABLE IF NOT EXISTS photo (pk INTEGER PRIMARY KEY, x);
+CREATE TABLE IF NOT EXISTS tag (pk INTEGER PRIMARY KEY, fk INTEGER, name);
+SELECT P.pk FROM PHOTO AS P WHERE NOT EXISTS(SELECT T2.pk FROM TAG AS T2 WHERE T2.fk = P.pk EXCEPT SELECT T3.pk FROM TAG AS T3 WHERE T3.fk = P.pk AND T3.name LIKE '%foo%');
+INSERT INTO photo VALUES (1, 1);
+INSERT INTO photo VALUES (2, 2);
+INSERT INTO photo VALUES (3, 3);
+INSERT INTO tag VALUES (11, 1, 'one');
+INSERT INTO tag VALUES (12, 1, 'two');
+INSERT INTO tag VALUES (21, 1, 'one-b');
+SELECT DISTINCT P.pk FROM PHOTO AS P WHERE EXISTS(SELECT T2.pk FROM TAG AS T2 WHERE T2.fk = P.pk EXCEPT SELECT T3.pk FROM TAG AS T3 WHERE T3.fk = P.pk AND T3.name LIKE '%foo%');

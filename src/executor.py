@@ -4,7 +4,7 @@ from typing import TypedDict, Literal
 from .performance_statistics import timed
 
 class ExecutionResult(TypedDict):
-    status: Literal["ORIGINAL_ERROR", "PATCHED_ERROR", "LOGICAL_BUG", "SUCCESS", "TIMEOUT"]
+    status: Literal["SUCCESS", "UNEXPECTED_ERROR", "LOGICAL_BUG", "CRASH", "INVALID", "TIMEOUT"]
     description: str
 
 class SQLiteDifferentialExecutor:
@@ -17,7 +17,6 @@ class SQLiteDifferentialExecutor:
         self.patched_env = os.environ.copy()
         self.patched_env["ASAN_OPTIONS"] = "exitcode=42:detect_leaks=0"
     
-    @timed("execution")
     def execute(self, query: str) -> ExecutionResult:
         try:
             result_original = subprocess.run(
@@ -26,13 +25,6 @@ class SQLiteDifferentialExecutor:
                 capture_output=True,
                 timeout=10
             )
-            # Queries that cause errors in the original version should be investigated
-            # (they are malformed or trigger unknown bugs).
-            if result_original.returncode != 0:
-                error_message = result_original.stderr.decode("utf-8")
-                return {"status": "ORIGINAL_ERROR",
-                        "description": f"Return code: {result_original.returncode}, Error: {error_message}"}
-            
             result_patched = subprocess.run(
                 [self.db_executable_patched],
                 input=query.encode("utf-8"),
@@ -40,23 +32,39 @@ class SQLiteDifferentialExecutor:
                 timeout=10,
                 env=self.patched_env
             )
-            # Here there's a defintely a bug since the original was fine (either crash or unexpected error).
+
+            if result_original.returncode == 0 and result_patched.returncode == 0:
+                original_output = result_original.stdout.decode("utf-8").strip()
+                patched_output = result_patched.stdout.decode("utf-8").strip()
+                # TODO: Handle sorted output or other non-determinism in results.
+                if sorted(original_output) != sorted(patched_output):
+                    return {"status": "LOGICAL_BUG",
+                            "description": f"Patched output:\n{patched_output}\nOriginal output:\n{original_output}"}
+                return {"status": "SUCCESS",
+                        "description": f"Output:\n{patched_output}"}
+
+            # Crash caused caused in the patched version by undefined behavior.
             if result_patched.returncode == 42:
-                error_message = result_patched.stderr.decode("utf-8")
-                return {"status": "PATCHED_ERROR",
-                        "description": f"ASAN/UBSAN CRASH! Error: {error_message}"}
-            elif result_patched.returncode != 0:
-                error_message = result_patched.stderr.decode("utf-8")
-                return {"status": "PATCHED_ERROR",
-                        "description": f"Return code: {result_patched.returncode}, Error: {error_message}"}
-            if result_original.stdout.decode("utf-8") != result_patched.stdout.decode("utf-8"):
-                patched_output = result_patched.stdout.decode("utf-8")
-                original_output = result_original.stdout.decode("utf-8")
-                return {"status": "LOGICAL_BUG",
-                        "description": f"Patched output: {patched_output}, Original output: {original_output}"}
-            output = result_patched.stdout.decode("utf-8")
-            return {"status": "SUCCESS",
-                    "description": f"Output: {output}"}
+                error_message = result_patched.stderr.decode("utf-8").strip()
+                return {"status": "CRASH",
+                        "description": f"ASAN/UBSAN Crash! Error: {error_message}"} 
+
+            # If both version return an error with code 1, it's most likely an invalid query.
+            # Invalid queries include syntax errors (parsing errors) or semantic errors
+            # (e.g. referencing non-existent tables, violating a unique constraint).
+            if result_patched.returncode == result_original.returncode and result_patched.returncode == 1:
+                error_message_patched = result_patched.stderr.decode("utf-8").strip()
+                error_message_original = result_original.stderr.decode("utf-8").strip()
+                return {"status": "INVALID",
+                        "description": f"Original error: {error_message_original}\nPatched error: {error_message_patched}"}
+            
+            # If we get here, we likely have an unexpected error in the patched version.
+            # For example, the patched version might return an error code that shouldn't be triggeres
+            # (e.g., referencing a non-existent table errors, but it is not the case).
+            error_message_patched = result_patched.stderr.decode("utf-8").strip()
+            error_message_original = result_original.stderr.decode("utf-8").strip()
+            return {"status": "UNEXPECTED_ERROR",
+                    "description": f"Original error: {error_message_original}\nPatched error: {error_message_patched}"}
         except subprocess.TimeoutExpired:
             return {"status": "TIMEOUT",
                     "description": "Query execution timed out."}

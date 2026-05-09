@@ -44,7 +44,7 @@ def run_final_lcov_evaluation(source_dir: str):
     Runs the official `lcov` tool to generate the Line, Branch, and Function
     coverage report for the final evaluation.
     """
-    logger.info(f"Running final lcov evaluation in {source_dir}...")
+    logger.bind(terminal=True).info(f"Running final lcov evaluation in {source_dir}...")
     
     # 1. Capture coverage data
     capture_result = subprocess.run(
@@ -75,4 +75,4 @@ def run_final_lcov_evaluation(source_dir: str):
     logger.info("Final lcov coverage report:")
     for line in summary_result.stdout.split('\n'):
         if line.strip():
-            logger.info(line.strip())
+            logger.bind(terminal=True).info(line.strip())

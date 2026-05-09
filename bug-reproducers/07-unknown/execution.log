@@ -1,0 +1,16 @@
+2026-05-09 16:49:13.258 | ERROR    | src.fuzzer:report_execution_result:106 - Execution result with status UNEXPECTED_ERROR!
+Description:
+Original error:
+Patched error: Parse error near line 1: a GROUP BY clause is required before HAVING
+Query: ID None
+CREATE TABLE t1 (n INTEGER, log INTEGER);
+BEGIN TRANSACTION;
+INSERT INTO t1 VALUES (2, 1);
+INSERT INTO t1 VALUES (3, 1);
+INSERT INTO t1 VALUES (4, 1);
+INSERT INTO t1 VALUES (4, 3);
+SELECT MIN(n), MIN(log), MAX(n), MAX(log), SUM(n), SUM(log), AVG(n), AVG(log) FROM t1;
+SELECT log, AVG(n) + 1 FROM t1 GROUP BY log ORDER BY log;
+SELECT log * 2 + 1 AS x, COUNT(*) AS y FROM t1 GROUP BY x ORDER BY 10 - (x + y);
+SELECT log, COUNT(*) FROM t1 HAVING COUNT(*) >= 4 ORDER BY log;
+SELECT log, COUNT(*), AVG(n), MAX(n + log * 2) FROM t1 GROUP BY log ORDER BY MAX(n + log * 2) + 0, MIN(log, AVG(n)) + 0;

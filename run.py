@@ -16,7 +16,7 @@ def main():
         with open(args.file, "r") as f:
             query = "".join(f.read().splitlines())
             result = fuzzer.executor.execute(query)
-            fuzzer.report_bug(result, query)
-    
+            fuzzer.report_execution_result(result, query, "None")
+
 if __name__ == "__main__":
     main()
