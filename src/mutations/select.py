@@ -2,28 +2,34 @@ import random
 from sqlglot import exp
 from typing import List, Tuple, Callable, Dict
 from loguru import logger
+from .common import collect_mutations_extreme_values, collect_mutations_relational_operators, collect_mutations_logical_operators, \
+    collect_mutations_insert_unary_operator, collect_mutations_arithmetic_binary_operators, collect_mutations_between, \
+    collect_mutations_like_patterns, collect_mutations_null_check
 
 SelectMutation = Tuple[Callable[[exp.Select], None], str]
 
+################################### Mutations for SELECT statements ###################################
 def collect(statement: exp.Select, schema: Dict[str, List[str]]) -> List[SelectMutation]:
     mutations: List[SelectMutation] = []
+    # Here are mutations specific to the SELECT statement.
     mutations.extend(collect_mutations_select_clause(statement))
+    mutations.extend(collect_mutations_where_clause(statement))
     mutations.extend(collect_mutations_join_clause(statement, schema))
     mutations.extend(collect_mutations_subquery_predicate(statement))
     mutations.extend(collect_mutations_group_by_clause(statement))
     mutations.extend(collect_mutations_aggregate_function(statement))
-    mutations.extend(collect_mutations_relational_operator(statement))
-    mutations.extend(collect_mutations_logical_operator(statement))
-    mutations.extend(collect_mutations_unary_operator(statement))
-    mutations.extend(collect_mutations_absolute_value(statement))
-    mutations.extend(collect_mutations_arithmetic_operator(statement))
-    mutations.extend(collect_mutations_between(statement))
-    mutations.extend(collect_mutations_like_patterns(statement))
-    mutations.extend(collect_mutations_where_having(statement))
-    mutations.extend(collect_mutations_null_check(statement))
+    mutations.extend(collect_mutations_having_clause(statement))
     mutations.extend(collect_mutations_order_by(statement))
     mutations.extend(collect_mutations_case_when(statement))
+    # Here are mutations that can apply to any statement type.
     mutations.extend(collect_mutations_extreme_values(statement))
+    mutations.extend(collect_mutations_relational_operators(statement))
+    mutations.extend(collect_mutations_logical_operators(statement))
+    mutations.extend(collect_mutations_insert_unary_operator(statement))
+    mutations.extend(collect_mutations_arithmetic_binary_operators(statement))
+    mutations.extend(collect_mutations_between(statement))
+    mutations.extend(collect_mutations_like_patterns(statement))
+    mutations.extend(collect_mutations_null_check(statement))
     return mutations
 
 def collect_mutations_select_clause(statement: exp.Select) -> List[SelectMutation]:
@@ -41,8 +47,25 @@ def collect_mutations_select_clause(statement: exp.Select) -> List[SelectMutatio
             mutations.append((apply, desc))
     return mutations
 
+def collect_mutations_where_clause(statement: exp.Select) -> List[SelectMutation]:
+    # Mutation 2: Negate the WHERE clause condition, or drop it entirely.
+    mutations: List[SelectMutation] = []
+    where = statement.args.get("where")
+    if not where:
+        return mutations
+    condition = where.this
+    desc = f"Negate the WHERE clause condition."
+    mutations.append((lambda stmt: stmt.set("where", exp.Where(this=exp.Not(this=stmt.args["where"].this.copy()))), desc))
+    # If the condition is already a negation, we can also remove the NOT.
+    if isinstance(condition, exp.Not):
+        desc = f"Remove NOT from the WHERE clause condition."
+        mutations.append((lambda stmt: stmt.set("where", exp.Where(this=stmt.args["where"].this.this.copy())), desc))
+    desc = f"Drop the WHERE clause entirely."
+    mutations.append((lambda stmt: stmt.set("where", None), desc))
+    return mutations
+
 def collect_mutations_join_clause(statement: exp.Select, schema: Dict[str, List[str]]) -> List[SelectMutation]:
-    # Mutation 2: Mutate the JOIN clause (change type, add/remove conditions).
+    # Mutation 3: Mutate the JOIN clause (change type, add/remove conditions).
     # The join types are: INNER, LEFT, RIGHT, FULL, CROSS.
     # They are characterized by the pair (kind, side).
     mutations: List[SelectMutation] = []
@@ -94,7 +117,7 @@ def mutate_join_clause(join_target: exp.Join, join_new_kind: str, join_new_side:
         join_target.set("using", None)
 
 def collect_mutations_subquery_predicate(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 3: Mutate subquery predicates (EXISTS, IN, ANY, ALL).
+    # Mutation 4: Mutate subquery predicates (EXISTS, IN, ANY, ALL).
     # There are several types of such predicates:
     # Type I: [ANY, ALL];
     # Type II: [IN, NOT IN];
@@ -143,7 +166,7 @@ def mutate_in_to_exists(target: exp.In, is_not: bool):
         target.replace(replacement)
 
 def collect_mutations_group_by_clause(statement: exp.Select):
-    # Mutation 4: Remove expressions from the GROUP BY clause.
+    # Mutation 5: Remove expressions from the GROUP BY clause.
     group = statement.args.get("group")
     if group is None:
         return []
@@ -181,7 +204,7 @@ def mutate_group_by_clause(statement: exp.Select, group_target: exp.Group, expr_
         group_expressions.remove(expression_to_remove)
 
 def collect_mutations_aggregate_function(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 5: Mutate aggregate functions (change function, add/remove DISTINCT).
+    # Mutation 6: Mutate aggregate functions (change function, add/remove DISTINCT).
     targets = get_aggregate_valid_targets(statement)
     if not targets:
         return []
@@ -222,271 +245,25 @@ def mutate_aggregate_function(target: exp.AggFunc, new_type: type, new_distinct:
         new_agg.set("distinct", exp.Distinct())
     target.replace(new_agg)
 
-def collect_mutations_relational_operator(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 6: Replace a relational operator (=, <>, <, <=, >, >=).
-    relational_operators = [exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE]
-    targets = []
-    for clause in [statement.args.get("where"), statement.args.get("having")]:
-        if clause:
-            targets.extend(clause.find_all(*relational_operators))
-    if not targets:
-        return []
+def collect_mutations_having_clause(statement: exp.Select) -> List[SelectMutation]:
+    # Mutation 7: Negate the HAVING clause condition, or drop it entirely.
     mutations: List[SelectMutation] = []
-    for target_idx, target in enumerate(targets):
-        for choice in [op for op in relational_operators if not isinstance(target, op)] + ["falseop", "trueop"]:
-            choice_name = choice if isinstance(choice, str) else choice.__name__
-            desc = f"Replace relational operator at index {target_idx} with {choice_name}."
-            def apply(stmt, ti=target_idx, c=choice, ops=relational_operators):
-                targets_copy = []
-                for clause in [stmt.args.get("where"), stmt.args.get("having")]:
-                    if clause:
-                        targets_copy.extend(clause.find_all(*ops))
-                mutate_relational_operator(targets_copy[ti], c)
-            mutations.append((apply, desc))
+    having = statement.args.get("having")
+    if not having:
+        return mutations
+    condition = having.this
+    desc = f"Negate the HAVING clause condition."
+    mutations.append((lambda stmt: stmt.set("having", exp.Having(this=exp.Not(this=stmt.args["having"].this.copy()))), desc))
+    # If the condition is already a negation, we can also remove the NOT.
+    if isinstance(condition, exp.Not):
+        desc = f"Remove NOT from the HAVING clause condition."
+        mutations.append((lambda stmt: stmt.set("having", exp.Having(this=stmt.args["having"].this.this.copy())), desc))
+    desc = f"Drop the HAVING clause entirely."
+    mutations.append((lambda stmt: stmt.set("having", None), desc))
     return mutations
-
-def mutate_relational_operator(target: exp.EQ | exp.NEQ | exp.LT | exp.LTE | exp.GT | exp.GTE, choice):
-    if choice == "falseop":
-        target.replace(exp.false())
-    elif choice == "trueop":
-        target.replace(exp.true())
-    else:
-        target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
-
-def collect_mutations_logical_operator(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 7: Replace a logical operator (AND, OR).
-    targets = []
-    for clause in [statement.args.get("where"), statement.args.get("having")]:
-        if clause:
-            targets.extend(clause.find_all(exp.And, exp.Or))
-    if not targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx, target in enumerate(targets):
-        for choice in [exp.Or if isinstance(target, exp.And) else exp.And, "falseop", "trueop", "leftop", "rightop"]:
-            choice_name = choice if isinstance(choice, str) else choice.__name__
-            desc = f"Replace logical operator at index {target_idx} with {choice_name}."
-            def apply(stmt, ti=target_idx, c=choice):
-                targets_copy = []
-                for clause in [stmt.args.get("where"), stmt.args.get("having")]:
-                    if clause:
-                        targets_copy.extend(clause.find_all(exp.And, exp.Or))
-                mutate_logical_operator(targets_copy[ti], c)
-            mutations.append((apply, desc))
-    return mutations
-
-def mutate_logical_operator(target: exp.And | exp.Or, choice):
-    if choice == "falseop":
-        target.replace(exp.false())
-    elif choice == "trueop":
-        target.replace(exp.true())
-    elif choice == "leftop":
-        target.replace(target.left.copy())
-    elif choice == "rightop":
-        target.replace(target.right.copy())
-    else:
-        target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
-
-def collect_mutations_unary_operator(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 8: Insert a unary operator (+1, -1, negate) on an arithmetic expression.
-    targets = get_valid_arithmetic_targets(statement)
-    if not targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx in range(len(targets)):
-        for choice in ["negate", "add1", "sub1"]:
-            desc = f"Apply {choice} to arithmetic expression at index {target_idx}."
-            mutations.append((
-                lambda stmt, ti=target_idx, c=choice:
-                    mutate_unary_operator(get_valid_arithmetic_targets(stmt)[ti], c), desc))
-    return mutations
-
-def get_valid_arithmetic_targets(statement: exp.Select) -> List[exp.Expr]:
-    targets = []
-    for node in statement.find_all(exp.Literal, exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod):
-        if isinstance(node, exp.Literal) and not node.is_number:
-            continue
-        is_excluded = False
-        current = node
-        while current:
-            if isinstance(current, (exp.Group, exp.Order)):
-                is_excluded = True
-                break
-            if isinstance(current, exp.Exists):
-                if current.this and current.this.args.get("expressions"):
-                    for expr in current.this.args.get("expressions"):
-                        if expr == node or node in list(expr.find_all(type(node))):
-                            is_excluded = True
-                            break
-                break
-            current = current.parent
-        if not is_excluded:
-            targets.append(node)
-    return targets
-
-def mutate_unary_operator(target: exp.Expr, choice: str):
-    if choice == "negate":
-        target.replace(exp.Neg(this=target.copy()))
-    elif choice == "add1":
-        target.replace(exp.Add(this=target.copy(), expression=exp.Literal.number(1)))
-    elif choice == "sub1":
-        target.replace(exp.Sub(this=target.copy(), expression=exp.Literal.number(1)))
-
-def collect_mutations_absolute_value(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 9: Wrap an arithmetic expression in ABS or -ABS.
-    targets = get_valid_arithmetic_targets(statement)
-    if not targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx in range(len(targets)):
-        for choice in ["abs", "neg_abs"]:
-            desc = f"Apply {choice} to arithmetic expression at index {target_idx}."
-            mutations.append((
-                lambda stmt, ti=target_idx, c=choice:
-                    mutate_absolute_value(get_valid_arithmetic_targets(stmt)[ti], c), desc))
-    return mutations
-
-def mutate_absolute_value(target: exp.Expr, choice: str):
-    abs_func = exp.func("ABS", target.copy())
-    if choice == "abs":
-        target.replace(abs_func)
-    elif choice == "neg_abs":
-        target.replace(exp.Neg(this=abs_func))
-
-def collect_mutations_arithmetic_operator(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 10: Replace an arithmetic operator (+, -, *, /, %).
-    arithmetic_operators = [exp.Add, exp.Sub, exp.Mul, exp.Div, exp.Mod]
-    targets = list(statement.find_all(*arithmetic_operators))
-    if not targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx, target in enumerate(targets):
-        for choice in [op for op in arithmetic_operators if not isinstance(target, op)] + ["leftop", "rightop"]:
-            choice_name = choice if isinstance(choice, str) else choice.__name__
-            desc = f"Replace arithmetic operator at index {target_idx} with {choice_name}."
-            def apply(stmt, ti=target_idx, c=choice, ops=arithmetic_operators):
-                mutate_arithmetic_operator(list(stmt.find_all(*ops))[ti], c)
-            mutations.append((apply, desc))
-    return mutations
-
-def mutate_arithmetic_operator(target: exp.Add | exp.Sub | exp.Mul | exp.Div | exp.Mod, choice):
-    if choice == "leftop":
-        target.replace(target.left.copy())
-    elif choice == "rightop":
-        target.replace(target.right.copy())
-    else:
-        target.replace(choice(this=target.left.copy(), expression=target.right.copy()))
-
-def collect_mutations_between(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 11: Replace BETWEEN with explicit inequalities.
-    targets = list(statement.find_all(exp.Between))
-    if not targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx in range(len(targets)):
-        for choice in [1, 2]:
-            desc = f"Replace BETWEEN at index {target_idx} with explicit inequalities (Option {choice})."
-            mutations.append((
-                lambda stmt, ti=target_idx, c=choice:
-                    mutate_between(list(stmt.find_all(exp.Between))[ti], c), desc))
-    return mutations
-
-def mutate_between(target: exp.Between, choice: int):
-    a, x, y = target.this.copy(), target.args["low"].copy(), target.args["high"].copy()
-    if choice == 1:
-        cond = exp.And(this=exp.GT(this=a.copy(), expression=x), expression=exp.LTE(this=a.copy(), expression=y))
-    else:
-        cond = exp.And(this=exp.GTE(this=a.copy(), expression=x), expression=exp.LT(this=a.copy(), expression=y))
-    if isinstance(target.parent, exp.Not):
-        target.parent.replace(exp.Not(this=cond))
-    else:
-        target.replace(cond)
-
-def collect_mutations_like_patterns(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 12: Mutate a LIKE/ILIKE wildcard pattern.
-    all_targets = list(statement.find_all(exp.Like, exp.ILike))
-    valid_targets = [t for t in all_targets if isinstance(t.expression, exp.Literal) and t.expression.is_string]
-    if not valid_targets:
-        return []
-    mutations: List[SelectMutation] = []
-    for target_idx, target in enumerate(valid_targets):
-        pattern = target.expression.name
-        if not pattern:
-            continue
-        new_patterns: set = set()
-        wildcards = [(i, ch) for i, ch in enumerate(pattern) if ch in ('%', '_')]
-        for idx, char in wildcards:
-            other = '_' if char == '%' else '%'
-            new_patterns.add(pattern[:idx] + pattern[idx+1:])
-            new_patterns.add(pattern[:idx] + other + pattern[idx+1:])
-            if idx > 0 and pattern[idx-1] not in ('%', '_'):
-                new_patterns.add(pattern[:idx-1] + pattern[idx:])
-            if idx < len(pattern) - 1 and pattern[idx+1] not in ('%', '_'):
-                new_patterns.add(pattern[:idx+1] + pattern[idx+2:])
-        if not pattern.startswith(('%', '_')):
-            new_patterns.update(['%' + pattern, '_' + pattern])
-        if not pattern.endswith(('%', '_')):
-            new_patterns.update([pattern + '%', pattern + '_'])
-        for new_pattern in new_patterns:
-            desc = f"Mutate LIKE pattern at index {target_idx} from '{pattern}' to '{new_pattern}'."
-            def apply(stmt, ti=target_idx, np=new_pattern):
-                all_copy = list(stmt.find_all(exp.Like, exp.ILike))
-                valid_copy = [t for t in all_copy if isinstance(t.expression, exp.Literal) and t.expression.is_string]
-                valid_copy[ti].expression.set("this", np)
-            mutations.append((apply, desc))
-    return mutations
-
-def collect_mutations_where_having(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 13: Negate or remove WHERE/HAVING clause.
-    mutations: List[SelectMutation] = []
-    clause_map = {"where": exp.Where, "having": exp.Having}
-    for clause_key, clause_type in clause_map.items():
-        if not statement.args.get(clause_key):
-            continue
-        def apply_negate(stmt, ck=clause_key, cc=clause_type):
-            clause = stmt.args[ck]
-            condition = clause.this
-            new_condition = condition.this.copy() if isinstance(condition, exp.Not) else exp.Not(this=condition.copy())
-            stmt.set(ck, cc(this=new_condition))
-        mutations.append((apply_negate, f"Negate {clause_key.upper()} condition."))
-        def apply_remove(stmt, ck=clause_key):
-            stmt.set(ck, None)
-        mutations.append((apply_remove, f"Remove {clause_key.upper()} clause."))
-    return mutations
-
-def collect_mutations_null_check(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 14: Replace a comparison with IS NULL / IS NOT NULL.
-    comparison_types = (exp.EQ, exp.NEQ, exp.LT, exp.LTE, exp.GT, exp.GTE)
-    targets = []
-    for clause in [statement.args.get("where"), statement.args.get("having")]:
-        if clause:
-            targets.extend(clause.find_all(*comparison_types))
-    mutations: List[SelectMutation] = []
-    for target_idx, target in enumerate(targets):
-        col = target.left if isinstance(target.left, exp.Column) else \
-              target.right if isinstance(target.right, exp.Column) else None
-        if col is None:
-            continue
-        for is_not in [False, True]:
-            null_str = "IS NOT NULL" if is_not else "IS NULL"
-            desc = f"Replace comparison at index {target_idx} with {null_str}."
-            def apply(stmt, ti=target_idx, n=is_not, ct=comparison_types):
-                targets_copy = []
-                for clause in [stmt.args.get("where"), stmt.args.get("having")]:
-                    if clause:
-                        targets_copy.extend(clause.find_all(*ct))
-                copy = targets_copy[ti]
-                col_copy = copy.left if isinstance(copy.left, exp.Column) else copy.right
-                mutate_null_check(copy, col_copy, n)
-            mutations.append((apply, desc))
-    return mutations
-
-def mutate_null_check(target: exp.Expr, col: exp.Column, is_not: bool):
-    null_check = exp.Is(this=col.copy(), expression=exp.Null())
-    target.replace(exp.Not(this=null_check) if is_not else null_check)
 
 def collect_mutations_order_by(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 15: Flip ORDER BY direction or remove ORDER BY expressions.
+    # Mutation 8: Flip ORDER BY direction or remove ORDER BY expressions.
     order = statement.args.get("order")
     if order is None:
         return []
@@ -507,7 +284,7 @@ def collect_mutations_order_by(statement: exp.Select) -> List[SelectMutation]:
     return mutations
 
 def collect_mutations_case_when(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 16: Mutate CASE WHEN expressions.
+    # Mutation 9: Mutate CASE WHEN expressions.
     cases = list(statement.find_all(exp.Case))
     if not cases:
         return []
@@ -541,28 +318,4 @@ def collect_mutations_case_when(statement: exp.Select) -> List[SelectMutation]:
                 new_cond = cond.this.copy() if isinstance(cond, exp.Not) else exp.Not(this=cond.copy())
                 c.args["ifs"][bi].set("this", new_cond)
             mutations.append((apply_negate, desc))
-    return mutations
-
-NUMERIC_EXTREMES = [0, 1, -1, 2**63 - 1, -(2**63)]
-def collect_mutations_extreme_values(statement: exp.Select) -> List[SelectMutation]:
-    # Mutation 17: Replace literals with extreme/boundary values.
-    mutations: List[SelectMutation] = []
-    num_literals = [n for n in statement.find_all(exp.Literal) if n.is_number]
-    for target_idx, literal in enumerate(num_literals):
-        current = literal.name
-        for extreme in NUMERIC_EXTREMES:
-            if str(extreme) == current:
-                continue
-            desc = f"Replace numeric literal at index {target_idx} with {extreme}."
-            def apply_numeric(stmt, ti=target_idx, v=extreme):
-                lits = [n for n in stmt.find_all(exp.Literal) if n.is_number]
-                lits[ti].replace(exp.Literal.number(v))
-            mutations.append((apply_numeric, desc))
-    str_literals = [n for n in statement.find_all(exp.Literal) if n.is_string and n.name != ""]
-    for target_idx in range(len(str_literals)):
-        desc = f"Replace string literal at index {target_idx} with empty string."
-        def apply_string(stmt, ti=target_idx):
-            lits = [n for n in stmt.find_all(exp.Literal) if n.is_string and n.name != ""]
-            lits[ti].replace(exp.Literal.string(""))
-        mutations.append((apply_string, desc))
     return mutations
