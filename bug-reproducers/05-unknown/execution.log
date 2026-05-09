@@ -1,0 +1,12 @@
+2026-05-09 16:46:53.755 | ERROR    | src.fuzzer:report_execution_result:106 - Execution result with status LOGICAL_BUG!
+Description:
+Patched output:
+1|Ar
+Original output:
+
+Query: ID None
+CREATE TABLE artists (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT(255));
+CREATE TABLE albums (id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, name TEXT(255), artist_id INTEGER REFERENCES artists);
+INSERT INTO artists (name) VALUES ('Ar');
+INSERT INTO albums (name, artist_id) VALUES ('Al', 1);
+SELECT DISTINCT artists.* FROM artists FULL JOIN artists AS b ON artists.id = artists.id WHERE (NOT artists.id IN (SELECT albums.artist_id FROM albums WHERE ((name = 'Al') AND (NOT albums.artist_id IS NULL) AND (albums.id IN (SELECT id FROM (SELECT albums.id, ROW_NUMBER() OVER (PARTITION BY albums.artist_id ORDER BY name) AS x FROM albums WHERE (name = 'Al')) AS t1 WHERE (x = 1))) AND (albums.id IN (1, 2)))));

@@ -1,0 +1,1 @@
+SELECT QUOTE(1e500);

@@ -1,0 +1,15 @@
+2026-05-09 16:54:25.669 | ERROR    | src.fuzzer:report_execution_result:106 - Execution result with status LOGICAL_BUG!
+Description:
+Patched output:
+NULL|NULL||
+1|NULL||
+Inf|NULL||
+Original output:
+NULL|NULL||
+1|NULL||
+9.0e+999|NULL||
+Query: ID None
+CREATE TABLE t1 (a INTEGER, b INTEGER);
+INSERT INTO t1 (a, b) VALUES (1e500, NULL), (NULL, NULL), (1, NULL);
+CREATE UNIQUE INDEX t1b ON t1(ABS(b));
+SELECT QUOTE(a), QUOTE(b), '|' FROM t1 GROUP BY a, ABS(b);
