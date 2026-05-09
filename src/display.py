@@ -1,7 +1,8 @@
 import sys
 import time
+from .performance_statistics import get_generation_throughput
 
-NUM_LINES = 14
+NUM_LINES = 15
 MIN_RENDER_INTERVAL = 0.1
 
 class StatsDisplay:
@@ -38,6 +39,7 @@ class StatsDisplay:
     def _render(self) -> None:
         elapsed = time.time() - self._start_time
         throughput = (self.queries_generated / elapsed * 60) if elapsed > 0 else 0
+        mutation_throughput = get_generation_throughput(self.queries_generated)
         pct = (self.queries_generated / self.max_queries * 100) if self.max_queries > 0 else 0
         total = max(self.queries_generated, 1)
 
@@ -51,7 +53,8 @@ class StatsDisplay:
             f"| Invalids:           {self.invalids:,}  ({self.invalids / total * 100:.1f}%)",
             f"| Timeouts:           {self.timeouts:,}  ({self.timeouts / total * 100:.1f}%)",
             f"Corpus:      {self.corpus_size}",
-            f"Throughput:  {throughput:.0f} queries/min",
+            f"Total throughput:  {throughput:.0f} queries/min",
+            f"Generation throughput: {mutation_throughput:.2f} mutated queries/min",
             f"Coverage:    {self.coverage:,} blocks",
             f"Elapsed:     {int(elapsed // 60)}m {int(elapsed % 60)}s",
             "==============================================================",

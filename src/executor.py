@@ -17,7 +17,6 @@ class SQLiteDifferentialExecutor:
         self.patched_env = os.environ.copy()
         self.patched_env["ASAN_OPTIONS"] = "exitcode=42:detect_leaks=0"
     
-    @timed("execution")
     def execute(self, query: str) -> ExecutionResult:
         try:
             result_original = subprocess.run(

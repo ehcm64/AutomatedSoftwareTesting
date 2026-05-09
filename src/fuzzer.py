@@ -7,7 +7,6 @@ from sqlglot import exp
 from .executor import SQLiteDifferentialExecutor, ExecutionResult
 from .mutator import ASTMutator
 from .logger import setup_logging
-from .performance_statistics import get_performance_stats
 from .query_statistics import QueryStatistics
 from .coverage import FastCoverageTracker, run_final_lcov_evaluation
 from .display import StatsDisplay
@@ -157,12 +156,11 @@ class SQLFuzzer:
         finally:
             display.finish()
             logger.bind(terminal=True).info(f"Finished generating {self.statistics.queries_generated} queries. Final corpus size: {len(self.corpus)}.")
-            logger.bind(terminal=True).info(get_performance_stats(self.statistics.queries_generated))
             logger.bind(terminal=True).info(self.statistics.get_validity_stats())
             logger.bind(terminal=True).info(self.statistics.get_top30_keywords_stats(list(self.generated_queries)))
-            # Run final evaluation using the collected corpus
-            self.run_final_evaluation()           
-     
+            run_final_lcov_evaluation("/home/test/sqlite3-src")
+            
+            
     def run_final_evaluation(self):
         """
         Run the final evaluation to report Line, Branch, and Function coverage.
