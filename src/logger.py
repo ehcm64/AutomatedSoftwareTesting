@@ -11,18 +11,17 @@ def setup_logging() -> Path:
     logger.remove()
     logger.add(
         sys.stdout,
-        filter=lambda record: len(record["extra"]) == 0,
-        level="INFO",
+        filter=lambda record: "terminal" in record["extra"],
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>"
     )
     logger.add(
         run_dir / "fuzzer.log",
-        filter=lambda record: len(record["extra"]) == 0,
+        filter=lambda record: len(record["extra"]) == 0 or "terminal" in record["extra"],
         level="DEBUG",
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>"
     )
     logger.add(
-        run_dir / "queries.log",
+        run_dir / "queries_generated.log",
         filter=lambda record: "query" in record["extra"],
         format="{message}\n"
     )

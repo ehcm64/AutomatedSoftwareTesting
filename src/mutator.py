@@ -5,6 +5,7 @@ from loguru import logger
 from typing import List, Dict, Callable, Tuple
 from .performance_statistics import timed
 from .mutations.select import collect as collect_select_mutations
+from .mutations.insert import collect as collect_insert_mutations
 
 MAX_NUMBER_OF_STATEMENTS = 15
 PROBABILITY_OF_ADDING_STATEMENT = 0.0
@@ -54,6 +55,9 @@ class ASTMutator:
             if isinstance(statement, exp.Select):
                 select_mutations = collect_select_mutations(statement, schema)
                 mutations.extend([(lambda block, si=i, m=m: m(block.expressions[si]), f"[Statement {i}] {d}") for m, d in select_mutations])
+            elif isinstance(statement, exp.Insert):
+                insert_mutations = collect_insert_mutations(statement, schema)
+                mutations.extend([(lambda block, si=i, m=m: m(block.expressions[si]), f"[Statement {i}] {d}") for m, d in insert_mutations])
         return mutations
 
     @staticmethod
