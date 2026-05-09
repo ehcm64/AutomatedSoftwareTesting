@@ -140,12 +140,11 @@ class SQLFuzzer:
                         continue
                     queries_generated_count += 1
                     self.report_query(mutated_query, id=str(queries_generated_count), parent=base_query_id)
-                    snapshot_coverage = self.coverage_tracker.snapshot_counters()
                     result = self.executor.execute(mutated_query)
                     self.statistics.collect(result)
                     self.generated_queries.add(mutated_query)
                     # Check for new coverage directly from the .gcda file.
-                    new_coverage = self.coverage_tracker.check_for_new_coverage(snapshot_coverage)
+                    new_coverage = self.coverage_tracker.check_for_new_coverage()
                     if result["status"] != "SUCCESS":
                         self.report_execution_result(result, mutated_query, str(queries_generated_count))
                     elif new_coverage:
@@ -153,6 +152,8 @@ class SQLFuzzer:
                         logger.debug(f"New coverage discovered at query {queries_generated_count}! Total basic blocks hit: {current_cov}. Adding to corpus.")
                         self.corpus.append((mutated_query, str(queries_generated_count)))
                     display.update(len(self.corpus), queries_generated_count, self.statistics, self.coverage_tracker.get_coverage_count())
+        except KeyboardInterrupt:
+            logger.info("Fuzzing interrupted by user.")
         finally:
             display.finish()
             logger.bind(terminal=True).info(f"Finished generating {self.statistics.queries_generated} queries. Final corpus size: {len(self.corpus)}.")
