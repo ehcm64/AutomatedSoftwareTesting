@@ -124,7 +124,7 @@ class SQLFuzzer:
             os.remove(self.gcda_path)
         try:
             while True:
-                if queries_generated_count > max_queries or not self.corpus:
+                if queries_generated_count >= max_queries or not self.corpus:
                     break
                 # Pick a random query from the corpus.
                 chosen_id = random.choice(range(len(self.corpus)))
@@ -132,7 +132,7 @@ class SQLFuzzer:
                 logger.debug(f"Selected query ID {base_query_id} from the corpus for mutation.")
                 mutated_queries = self.mutator.mutate(base_query, base_query_id, 10)
                 if not mutated_queries:
-                    logger.warning(f"No mutations generated for query ID {base_query_id}. Removing it from the corpus.")
+                    logger.debug(f"No mutations left for query ID {base_query_id}. Removing it from the corpus.")
                     self.corpus.pop(chosen_id)
                     continue
                 for mutated_query in mutated_queries:
@@ -153,7 +153,7 @@ class SQLFuzzer:
                         logger.debug(f"New coverage discovered at query {queries_generated_count}! Total basic blocks hit: {current_cov}. Adding to corpus.")
                         self.corpus.append((mutated_query, str(queries_generated_count)))
                     display.update(len(self.corpus), queries_generated_count, self.statistics, self.coverage_tracker.get_coverage_count())
-        except KeyboardInterrupt:
+        finally:
             display.finish()
             logger.bind(terminal=True).info(f"Finished generating {self.statistics.queries_generated} queries. Final corpus size: {len(self.corpus)}.")
             logger.bind(terminal=True).info(get_performance_stats(self.statistics.queries_generated))
