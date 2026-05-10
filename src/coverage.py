@@ -5,7 +5,7 @@ from loguru import logger
 
 class FastCoverageTracker:
     """
-    A fast, heuristic-based coverage tracker that reads .gcda files directly.
+    A fast, heuristic-based coverage tracker inspired by AFL++ that reads .gcda files directly.
     Instead of invoking the slow `gcov` binary during the fuzzing loop, we
     directly read the binary .gcda file. In a .gcda file, counters are 64-bit
     integers. If any 64-bit block that was previously 0 becomes > 0, we know
@@ -13,7 +13,19 @@ class FastCoverageTracker:
     """
     def __init__(self, gcda_path: str):
         self.gcda_path = gcda_path
-        self.known_non_zero_offsets = set()
+        self.previous_gcda_state = {}
+        self.global_buckets = {}
+
+    def get_bucket(self, count: int) -> int:
+        if count <= 0: return 0
+        if count == 1: return 1
+        if count == 2: return 2
+        if count == 3: return 3
+        if count <= 7: return 4
+        if count <= 15: return 5
+        if count <= 31: return 6
+        if count <= 127: return 7
+        return 8
 
     def check_for_new_coverage(self) -> bool:
         if not os.path.exists(self.gcda_path):
@@ -24,20 +36,27 @@ class FastCoverageTracker:
             data = f.read()
             
             # A .gcda file has a 12-byte header (magic, version, stamp)
-            # We can safely scan the rest of the file in 8-byte chunks.
-            # Tags and lengths are 32-bit, but they are static for a given compilation.
-            # Only the 64-bit counters change. If a previously 0 value becomes > 0,
-            # we have discovered a new path!
             for i in range(12, len(data) - 7, 8):
                 val = struct.unpack('<Q', data[i:i+8])[0]
-                if val > 0 and i not in self.known_non_zero_offsets:
-                    self.known_non_zero_offsets.add(i)
-                    new_coverage = True
+                
+                # Calculate hits for this specific query
+                hits = val - self.previous_gcda_state.get(i, 0)
+                
+                if hits > 0:
+                    bucket = self.get_bucket(hits)
+                    
+                    # If we haven't seen this offset, or reached a higher bucket
+                    if i not in self.global_buckets or bucket > self.global_buckets[i]:
+                        self.global_buckets[i] = bucket
+                        new_coverage = True
+                
+                # Update the state for the next query
+                self.previous_gcda_state[i] = val
                     
         return new_coverage
 
     def get_coverage_count(self) -> int:
-        return len(self.known_non_zero_offsets)
+        return len(self.global_buckets)
 
 def run_final_lcov_evaluation(source_dir: str):
     """
