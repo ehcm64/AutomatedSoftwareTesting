@@ -21,9 +21,9 @@ class StatsDisplay:
         self._initialized = False
         self._last_render = 0.0
 
-    def update(self, corpus_size: int, queries_generated: int, stats, coverage: int) -> None:
+    def update(self, corpus_size: int, stats, coverage: int) -> None:
         self.corpus_size = corpus_size
-        self.queries_generated = queries_generated
+        self.queries_generated = stats.queries_generated
         self.successes = stats.successes
         self.unexpected_errors = stats.unexpected_errors
         self.logical_bugs = stats.logical_bugs

@@ -1,15 +1,15 @@
 import os
 import random
-import sqlglot
 import sqlglot.errors
+import sqlglot.expressions as exp
 from loguru import logger
-from sqlglot import exp
 from .executor import SQLiteDifferentialExecutor, ExecutionResult
 from .mutator import ASTMutator
 from .logger import setup_logging
 from .query_statistics import QueryStatistics
 from .coverage import FastCoverageTracker, run_final_lcov_evaluation
 from .display import StatsDisplay
+from .common import parse_query
 
 import logging
 logging.getLogger("sqlglot").setLevel(logging.ERROR)
@@ -53,40 +53,42 @@ class SQLFuzzer:
 
         skipping_files = 0
         for (filename, query) in seeds.items():
-            try:
-                result_initial = self.executor.execute(query)
-                if result_initial["status"] != "SUCCESS":
-                    skipping_files += 1
-                    self.report_execution_result(result_initial, query, filename)
-                    continue
-
-                query_tree = sqlglot.parse_one(query, read=SQL_DIALECT)
-                if isinstance(query_tree, exp.Block):
-                    if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
-                        skipping_files += 1
-                        logger.warning(
-                            f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, "
-                            "and the parser fell back to parse it as a Command."
-                        )
-                        continue
-                
-                query_printed = query_tree.sql(dialect=SQL_DIALECT)
-                result_after = self.executor.execute(query_printed)
-                if result_after["status"] != "SUCCESS":
-                    skipping_files += 1
-                    self.report_execution_result(result_after, query_printed, filename)
-                    continue
-                
-                self.report_query(query_printed, id=filename, parent="None")
-                self.corpus.append((query_printed, filename))
-                self.generated_queries.add(query_printed)
-            except sqlglot.errors.ParseError as e:
+            result_initial = self.executor.execute(query)
+            if result_initial["status"] != "SUCCESS":
                 skipping_files += 1
-                logger.warning(f"Failed to parse seed file {filename}: {e.errors[0]}.")
+                self.report_execution_result(result_initial, query, filename)
+                continue
+
+            query_tree = parse_query(query, dialect=SQL_DIALECT)
+            if isinstance(query_tree, sqlglot.errors.ParseError):
+                skipping_files += 1
+                logger.warning(f"Failed to parse seed file {filename}: {query_tree.errors[0]}.")
+                continue
+            if isinstance(query_tree, exp.Block):
+                if any(isinstance(expr, exp.Command) for expr in query_tree.expressions):
+                    skipping_files += 1
+                    logger.warning(
+                        f"Failed to parse seed file {filename}: Contains statement with unsupported syntax, "
+                        "and the parser fell back to parse it as a Command."
+                    )
+                    continue
+            
+            query_printed = query_tree.sql(dialect=SQL_DIALECT)
+            result_after = self.executor.execute(query_printed)
+            if result_after["status"] != "SUCCESS":
+                skipping_files += 1
+                self.report_execution_result(result_after, query_printed, filename)
+                continue
+            
+            self.report_query(query_printed, id=filename, parent="None")
+            self.corpus.append((query_printed, filename))
+            self.generated_queries.add(query_printed)
         return skipping_files
     
     def pretty_print(self, query: str) -> str:
-        query_parsed = sqlglot.parse_one(query, read=SQL_DIALECT)
+        query_parsed = parse_query(query, dialect=SQL_DIALECT)
+        if isinstance(query_parsed, sqlglot.errors.ParseError):
+            return query
         if isinstance(query_parsed, exp.Block):
             return ";\n".join(expr.sql(dialect=SQL_DIALECT) for expr in query_parsed.expressions) + ";"
         return query_parsed.sql(dialect=SQL_DIALECT)
@@ -107,6 +109,10 @@ class SQLFuzzer:
             logger.info(pretty_output)
 
     def run(self, max_queries: int = 10000) -> None:
+        # Clear .gcda file if it exists to start fresh for this fuzzing campaign.
+        if os.path.exists(self.gcda_path):
+            os.remove(self.gcda_path)
+        
         logging_dir = setup_logging()
         logger.bind(terminal=True).info("Starting SQL fuzzer.")
         logger.bind(terminal=True).info(f"Details logs will be saved to directory {logging_dir}.")
@@ -116,14 +122,10 @@ class SQLFuzzer:
                                                " or due to them already being unsuccessful.")
         
         logger.bind(terminal=True).info(f"Starting mutations with initial corpus size: {len(self.corpus)}.")
-        queries_generated_count = 0
         display = StatsDisplay(max_queries)
-        # Clear gcda file if it exists to start fresh for this fuzzing campaign.
-        if os.path.exists(self.gcda_path):
-            os.remove(self.gcda_path)
         try:
             while True:
-                if queries_generated_count >= max_queries or not self.corpus:
+                if not self.corpus:
                     break
                 # Pick a random query from the corpus.
                 chosen_id = random.choice(range(len(self.corpus)))
@@ -137,20 +139,22 @@ class SQLFuzzer:
                 for mutated_query in mutated_queries:
                     if mutated_query in self.generated_queries:
                         continue
-                    queries_generated_count += 1
-                    self.report_query(mutated_query, id=str(queries_generated_count), parent=base_query_id)
+                    mutated_query_id = str(self.statistics.queries_generated + 1)
+                    self.report_query(mutated_query, id=mutated_query_id, parent=base_query_id)
                     result = self.executor.execute(mutated_query)
                     self.statistics.collect(result)
                     self.generated_queries.add(mutated_query)
                     # Check for new coverage directly from the .gcda file.
                     new_coverage = self.coverage_tracker.check_for_new_coverage()
                     if result["status"] != "SUCCESS":
-                        self.report_execution_result(result, mutated_query, str(queries_generated_count))
+                        self.report_execution_result(result, mutated_query, mutated_query_id)
                     elif new_coverage:
                         current_cov = self.coverage_tracker.get_coverage_count()
-                        logger.debug(f"New coverage discovered at query {queries_generated_count}! Total basic blocks hit: {current_cov}. Adding to corpus.")
-                        self.corpus.append((mutated_query, str(queries_generated_count)))
-                    display.update(len(self.corpus), queries_generated_count, self.statistics, self.coverage_tracker.get_coverage_count())
+                        logger.debug(f"New coverage discovered at query {mutated_query_id}! Total basic blocks hit: {current_cov}. Adding to corpus.")
+                        self.corpus.append((mutated_query, mutated_query_id))
+                    display.update(len(self.corpus), self.statistics, self.coverage_tracker.get_coverage_count())
+                    if self.statistics.queries_generated >= max_queries:
+                        break
         except KeyboardInterrupt:
             logger.info("Fuzzing interrupted by user.")
         finally:

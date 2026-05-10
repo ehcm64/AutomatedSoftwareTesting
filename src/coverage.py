@@ -91,7 +91,7 @@ def run_final_lcov_evaluation(source_dir: str):
         logger.error(summary_result.stderr)
         return
         
-    logger.info("Final lcov coverage report:")
+    logger.bind(terminal=True).info("Final lcov coverage report:")
     for line in summary_result.stdout.split('\n'):
         if line.strip():
             logger.bind(terminal=True).info(line.strip())
