@@ -82,7 +82,6 @@ class SQLFuzzer:
             
             self.report_query(query_printed, id=filename, parent="None")
             self.corpus.append((query_printed, filename))
-            self.generated_queries.add(query_printed)
         return skipping_files
     
     def pretty_print(self, query: str) -> str:
@@ -163,22 +162,3 @@ class SQLFuzzer:
             logger.bind(terminal=True).info(self.statistics.get_validity_stats())
             logger.bind(terminal=True).info(self.statistics.get_top30_keywords_stats(list(self.generated_queries)))
             run_final_lcov_evaluation("/home/test/sqlite3-src")
-            
-            
-    def run_final_evaluation(self):
-        """
-        Run the final evaluation to report Line, Branch, and Function coverage.
-        As requested, this executes the saved corpus sequentially to find the final coverage.
-        """
-        logger.bind(terminal=True).info("Running sequential execution of corpus for final gcov evaluation...")
-        
-        # First, remove existing gcda to start fresh for the final evaluation
-        if os.path.exists(self.gcda_path):
-            os.remove(self.gcda_path)
-            
-        # Re-execute all generated queries sequentially
-        for i, query in enumerate(self.generated_queries):
-            self.executor.execute(query)
-            
-        # Call lcov
-        run_final_lcov_evaluation("/home/test/sqlite3-src")
