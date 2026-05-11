@@ -125,7 +125,7 @@ class SQLFuzzer:
         display = StatsDisplay(max_queries)
         try:
             while True:
-                if not self.corpus:
+                if self.statistics.queries_generated >= max_queries or not self.corpus:
                     break
                 # Pick a random query from the corpus.
                 chosen_id = random.choice(range(len(self.corpus)))
