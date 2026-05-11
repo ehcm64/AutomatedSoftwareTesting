@@ -1,11 +1,12 @@
 import random
-import sqlglot
-from sqlglot import exp
+import sqlglot.errors
+import sqlglot.expressions as exp
 from loguru import logger
 from typing import List, Dict, Callable, Tuple
 from .performance_statistics import timed
 from .mutations.select import collect as collect_select_mutations
 from .mutations.insert import collect as collect_insert_mutations
+from .common import parse_query
 
 MAX_NUMBER_OF_STATEMENTS = 15
 PROBABILITY_OF_ADDING_STATEMENT = 0.0
@@ -21,7 +22,10 @@ class ASTMutator:
     def mutate(self, query: str, query_id: str, num_mutations: int = 1) -> List[str]:
         """Main entrypoint for mutating a query. We are given the base query in the string format.
         We will parse it into an AST, and return up to `num_mutations` mutated versions of the query as strings."""
-        query_parsed: exp.Expr = sqlglot.parse_one(query, read=self.dialect)
+        query_parsed = parse_query(query, dialect=self.dialect)
+        if isinstance(query_parsed, sqlglot.errors.ParseError):
+            logger.warning(f"Failed to parse query {query_id} for mutation. Error: {query_parsed}.")
+            return []
         if not isinstance(query_parsed, exp.Block):
             logger.warning(f"Expected a block of statements at the top level of the query.")
             return []
@@ -41,8 +45,7 @@ class ASTMutator:
         chosen_mutations = [available_mutations.pop(i) for i in chosen_mutations_idx]
         results = []
         for mutation, _ in chosen_mutations:
-            block_copy = sqlglot.parse_one(query, read=self.dialect)
-            assert isinstance(block_copy, exp.Block), f"Expected a block of statements at the top level of the query."
+            block_copy = query_parsed.copy()
             mutation(block_copy)
             results.append(block_copy.sql(dialect=self.dialect))
         return results
