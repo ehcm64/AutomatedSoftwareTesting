@@ -161,4 +161,5 @@ class SQLFuzzer:
             logger.bind(terminal=True).info(f"Finished generating {self.statistics.queries_generated} queries. Final corpus size: {len(self.corpus)}.")
             logger.bind(terminal=True).info(self.statistics.get_validity_stats())
             logger.bind(terminal=True).info(self.statistics.get_top30_keywords_stats(list(self.generated_queries)))
+            logger.bind(terminal=True).info(self.statistics.get_average_keyword_frequencies(list(self.generated_queries)))
             run_final_lcov_evaluation("/home/test/sqlite3-src")

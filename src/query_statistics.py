@@ -195,6 +195,27 @@ class QueryStatistics:
             result += f"{keyword}: {count}\n"
         return result
 
+
+    @staticmethod
+    def get_average_keyword_frequencies(queries: list[str]) -> dict[str, float]:
+        counts = {keyword: 0 for keyword in KEYWORDS}
+        for query in queries:
+            words = query.split()
+            for word in words:
+                if word in counts:
+                    counts[word] += 1
+                    
+        sorted_keywords = sorted(counts.items(), key=lambda item: item[1], reverse=True)
+        top30 = sorted_keywords[:30]
+
+        result = "Top 30 SQL keywords average frequencies:\n"
+        total_queries = len(queries)
+        for keyword, count in top30:
+            result += f"{keyword}: {(count / total_queries):.2f}\n"
+
+        return result
+
+
     def get_validity_stats(self) -> str:        
         error_rate = (self.invalids / self.queries_generated) * 100 if self.queries_generated > 0 else 0
         return f"Query validity stats: {self.queries_generated} queries executed, {self.successes} errors, Error rate: {error_rate:.2f}%"
