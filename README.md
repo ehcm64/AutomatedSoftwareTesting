@@ -15,6 +15,4 @@ docker run -it sqlite-fuzzer
 ```
 /usr/bin/test-db fuzz -queries <n> #runs the fuzzer until n queries have been generated
 /usr/bin/test-db test --file <path/to/query.sql> #differentially tests one query (useful for bug reproduction)
-
 ```
-
