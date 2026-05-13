@@ -1,7 +1,6 @@
 import subprocess
 import os
 from typing import TypedDict, Literal
-from .performance_statistics import timed
 
 class ExecutionResult(TypedDict):
     status: Literal["SUCCESS", "UNEXPECTED_ERROR", "LOGICAL_BUG", "CRASH", "INVALID", "TIMEOUT"]
