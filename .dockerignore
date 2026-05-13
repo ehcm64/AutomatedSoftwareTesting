@@ -3,3 +3,6 @@ __pycache__/
 runs/
 .mypy_cache/
 .git/
+*.egg-info
+tests/
+build/

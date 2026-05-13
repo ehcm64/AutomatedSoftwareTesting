@@ -15,7 +15,7 @@ dependencies = [
 
 [tool.setuptools]
 py-modules = ["run"]
-packages = ["src"]
+packages = {find = {include = ["src*"]}}
 
 [project.scripts]
 test-db = "run:main"
