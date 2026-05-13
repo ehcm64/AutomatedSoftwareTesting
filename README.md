@@ -1,23 +1,20 @@
 # Automated Software Testing
 ## Part 1: Automated Bug Detection in Database Engines
 
+### Building the Docker image
 ```
 docker build -t sqlite-fuzzer .
-docker run -it -v "$PWD":/home/test/fuzzer -w /home/test/fuzzer sqlite-fuzzer
 ```
 
+### Running the container
 ```
-python3 -m venv .venv
-source .venv/bin/activate
-pip3 install -r requirements.txt
-```
-
-```
-python3 run.py <args>
+docker run -it sqlite-fuzzer
 ```
 
-OR
+### Available commands
 ```
-pip install -e . # Creates executable in editable mode (no need to re-run this even after editing code)
-test-db <args>
+/usr/bin/test-db fuzz -queries <n> #runs the fuzzer until n queries have been generated
+/usr/bin/test-db test --file <path/to/query.sql> #differentially tests one query (useful for bug reproduction)
+
 ```
+
