@@ -23,4 +23,4 @@ SELECT AVG(x) FROM t1;
 -0.5
 ```
 
-The two values are `INT64_MIN` (`-9223372036854775808`) and `INT64_MAX` (`9223372036854775807`). Their correct integer sum is `-1`, giving an average of `AVG = -1 / 2 = -0.5`. The `SUM` function for the same numbers works fine, so it's likely a bug in the average function.
+The two values are `INT64_MIN` (`-9223372036854775808`) and `INT64_MAX` (`9223372036854775807`). Their correct integer sum is `-1`, giving an average of `AVG = -1 / 2 = -0.5`, but the patched binary returns `0.0`. The `SUM` function for the same numbers works fine, so it's likely a bug in the average function.
