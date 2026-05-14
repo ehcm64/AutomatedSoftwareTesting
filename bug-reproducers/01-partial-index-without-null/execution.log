@@ -1,0 +1,13 @@
+2026-05-06 14:23:00 | ERROR    | Execution result with status LOGICAL_BUG!
+Description:
+Patched output:
+1
+Original output:
+1
+1
+Query:
+CREATE TABLE t0 (c0);
+INSERT INTO t0 (c0) VALUES (NULL);
+CREATE INDEX i0 ON t0(1) WHERE NOT c0 IS NULL;
+SELECT 1 FROM t0 WHERE (t0.c0 IS FALSE) IS FALSE;
+SELECT 1 FROM t0 WHERE (t0.c0 IS FALSE) BETWEEN FALSE AND TRUE;
