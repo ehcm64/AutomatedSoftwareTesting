@@ -15,12 +15,10 @@ SELECT count(*) FROM t1 HAVING count(*)>=4;
 Parse error near line 1: a GROUP BY clause is required before HAVING
 ```
 
-## Expected output
+## Expectation
 
 ```sql
 <empty result set>
 ```
-
-## Explanation
 
 In SQL, `HAVING` without `GROUP BY` is valid. The query should treat the entire result set as one group. The query should execute and return an empty result since `count(*) >= 4` is `FALSE` on an empty table.
