@@ -17,19 +17,17 @@ WHERE EXISTS(
 );
 ```
 
-## Actual output (SQLite 3.51, buggy)
+## Actual output
 
 ```sql
 1
 ```
 
-## Expected output (SQLite 3.53)
+## Expectation
 
 ```sql
 <empty result set>
 ```
-
-## Explanation
 
 The subquery inside `EXISTS` uses `EXCEPT` to compute the difference between two identical sets. The expected result would be an empty set, since both sides of the `EXCEPT` are the same. Therefore, the `EXISTS` condition should evaluate to `FALSE`.
 
