@@ -181,7 +181,7 @@ def collect_mutations_like_patterns(statement: exp.Expr) -> List[StatementMutati
             new_patterns.update(['%' + pattern, '_' + pattern])
         if not pattern.endswith(('%', '_')):
             new_patterns.update([pattern + '%', pattern + '_'])
-        for new_pattern in new_patterns:
+        for new_pattern in sorted(new_patterns):
             desc = f"Mutate LIKE pattern at index {target_idx} from '{pattern}' to '{new_pattern}'."
             def apply(stmt, ti=target_idx, np=new_pattern):
                 all_copy = list(stmt.find_all(exp.Like, exp.ILike))
