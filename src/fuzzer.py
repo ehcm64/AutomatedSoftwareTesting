@@ -42,7 +42,7 @@ class SQLFuzzer:
             (iii) success execution after doing a parse + print cycle.
         """
         seeds: dict[str, str] = {}
-        for filename in os.listdir(self.seed_dir):
+        for filename in sorted(os.listdir(self.seed_dir)):
             if filename.endswith('.sql'):
                 with open(os.path.join(self.seed_dir, filename), 'r') as f:
                     seeds[filename] = "".join(f.read().splitlines())
@@ -107,13 +107,16 @@ class SQLFuzzer:
         else:
             logger.info(pretty_output)
 
-    def run(self, max_queries: int = 10000) -> None:
+    def run(self, max_queries: int = 10000, seed: int | None = None) -> None:
         # Clear .gcda file if it exists to start fresh for this fuzzing campaign.
         if os.path.exists(self.gcda_path):
             os.remove(self.gcda_path)
         
         logging_dir = setup_logging()
         logger.bind(terminal=True).info("Starting SQL fuzzer.")
+        if seed is not None:
+            random.seed(seed)
+            logger.bind(terminal=True).info(f"Using random seed: {seed}.")
         logger.bind(terminal=True).info(f"Details logs will be saved to directory {logging_dir}.")
         skipped_files = self.load_seeds_into_corpus()
         if skipped_files > 0:
