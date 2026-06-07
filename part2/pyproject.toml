@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "reducer"
+version = "0.1.0"
+description = "SQLite Fuzzer"
+requires-python = ">=3.9"
+dependencies = [
+    "sqlglot>=30.4.3",
+    "mypy>=1.20.1",
+    "loguru>=0.7.3"
+]
+
+[tool.setuptools]
+py-modules = ["run"]
+packages = {find = {include = ["src*"]}}
+
+[project.scripts]
+reducer = "run:main"
