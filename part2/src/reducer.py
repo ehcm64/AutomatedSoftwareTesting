@@ -1,10 +1,6 @@
 from loguru import logger
 from .executor import OracleExecutor
-from .evaluation import token_count
 from sqlglot import exp, parse_one
-
-import logging
-logging.getLogger("sqlglot").setLevel(logging.ERROR)
 
 SQL_DIALECT = "sqlite"
 
@@ -78,8 +74,9 @@ class SQLReducer:
         return elements
 
         
-    def hdd(self, sql_query: str) -> str:
-        self.save_query(sql_query)
+    def hdd(self) -> str:
+        with open(self.original_query_path, "r") as f:
+            sql_query = f.read()
         assert self.executor.execute(sql_query)
 
         current_sql = sql_query
@@ -154,26 +151,4 @@ class SQLReducer:
             if not progress:
                 break
 
-        return current_sql
-
-
-    def run(self) -> None:
-        original_query_size = token_count(self.original_query_path)
-        logger.info(f"Original query size: {original_query_size} tokens")
-        logger.info(f"The reduced query will be saved to: {self.original_query_path}")
-        with open(self.original_query_path, "r") as f:
-            original_query = f.read()
-        
-        reduced_query = self.hdd(original_query)
-        self.save_query(reduced_query)
-        assert self.executor.execute(reduced_query)
-        reduced_query_size = token_count(self.original_query_path)
-        logger.info(f"Reduced query size: {reduced_query_size} tokens")
-
-        if reduced_query_size > original_query_size:
-            logger.info(f"Reduction failed, query size increased: {reduced_query_size} > {original_query_size}")
-            self.save_query(original_query)
-            reduced_query_size = original_query_size
-
-        compression_ratio = original_query_size / reduced_query_size
-        logger.info(f"Compression ratio: {compression_ratio}")        
+        return current_sql    
