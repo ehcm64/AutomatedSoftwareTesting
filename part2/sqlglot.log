@@ -1,128 +1,128 @@
 QUERY 1
-2026-06-09 21:49:55.637 | INFO     | __main__:main:21 - Original query size: 216 tokens
-2026-06-09 21:49:55.637 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_1.sql
-2026-06-09 21:50:01.969 | INFO     | __main__:main:29 - Reduced query size: 287 tokens
-2026-06-09 21:50:01.970 | INFO     | __main__:main:32 - Reduction failed, query size increased: 287 > 216
-2026-06-09 21:50:01.970 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 6.55 seconds
+2026-06-09 23:47:29.761 | INFO     | __main__:main:22 - Original query size: 216 tokens
+2026-06-09 23:47:29.761 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_1.sql
+2026-06-09 23:47:35.928 | INFO     | __main__:main:30 - Reduced query size: 287 tokens
+2026-06-09 23:47:35.928 | INFO     | __main__:main:33 - Reduction failed, query size increased: 287 > 216
+2026-06-09 23:47:35.928 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 6.38 seconds
 QUERY 2
-2026-06-09 21:50:02.183 | INFO     | __main__:main:21 - Original query size: 481 tokens
-2026-06-09 21:50:02.183 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_2.sql
-2026-06-09 21:50:02.203 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:02.217 | INFO     | __main__:main:29 - Reduced query size: 481 tokens
-2026-06-09 21:50:02.217 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.24 seconds
-QUERY 3
-2026-06-09 21:50:02.440 | INFO     | __main__:main:21 - Original query size: 1564 tokens
-2026-06-09 21:50:02.440 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_3.sql
-2026-06-09 21:50:02.464 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:02.481 | INFO     | __main__:main:29 - Reduced query size: 1564 tokens
-2026-06-09 21:50:02.481 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.26 seconds
-QUERY 4
-2026-06-09 21:50:02.699 | INFO     | __main__:main:21 - Original query size: 955 tokens
-2026-06-09 21:50:02.699 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_4.sql
-2026-06-09 21:50:10.947 | INFO     | __main__:main:29 - Reduced query size: 107 tokens
-2026-06-09 21:50:10.947 | INFO     | __main__:main:37 - Compression ratio: 8.925233644859814
-Time taken: 8.46 seconds
-QUERY 5
-2026-06-09 21:50:11.154 | INFO     | __main__:main:21 - Original query size: 68 tokens
-2026-06-09 21:50:11.154 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_5.sql
-2026-06-09 21:50:11.907 | INFO     | __main__:main:29 - Reduced query size: 68 tokens
-2026-06-09 21:50:11.908 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.96 seconds
-QUERY 6
-2026-06-09 21:50:12.129 | INFO     | __main__:main:21 - Original query size: 3810 tokens
-2026-06-09 21:50:12.129 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_6.sql
-2026-06-09 21:50:17.387 | INFO     | __main__:main:29 - Reduced query size: 108 tokens
-2026-06-09 21:50:17.387 | INFO     | __main__:main:37 - Compression ratio: 35.27777777777778
-Time taken: 5.48 seconds
-QUERY 7
-2026-06-09 21:50:17.606 | INFO     | __main__:main:21 - Original query size: 619 tokens
-2026-06-09 21:50:17.606 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_7.sql
-2026-06-09 21:50:19.196 | INFO     | __main__:main:29 - Reduced query size: 19 tokens
-2026-06-09 21:50:19.196 | INFO     | __main__:main:37 - Compression ratio: 32.578947368421055
-Time taken: 1.82 seconds
-QUERY 8
-2026-06-09 21:50:19.442 | INFO     | __main__:main:21 - Original query size: 1694 tokens
-2026-06-09 21:50:19.442 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_8.sql
-2026-06-09 21:50:25.378 | INFO     | __main__:main:29 - Reduced query size: 93 tokens
-2026-06-09 21:50:25.378 | INFO     | __main__:main:37 - Compression ratio: 18.21505376344086
-Time taken: 6.16 seconds
-QUERY 9
-2026-06-09 21:50:25.590 | INFO     | __main__:main:21 - Original query size: 1245 tokens
-2026-06-09 21:50:25.590 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_9.sql
-2026-06-09 21:50:25.613 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:25.631 | INFO     | __main__:main:29 - Reduced query size: 1245 tokens
-2026-06-09 21:50:25.631 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.25 seconds
-QUERY 10
-2026-06-09 21:50:25.840 | INFO     | __main__:main:21 - Original query size: 259 tokens
-2026-06-09 21:50:25.840 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_10.sql
-2026-06-09 21:50:25.853 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:25.861 | INFO     | __main__:main:29 - Reduced query size: 259 tokens
-2026-06-09 21:50:25.861 | INFO     | __main__:main:37 - Compression ratio: 1.0
+2026-06-09 23:47:36.128 | INFO     | __main__:main:22 - Original query size: 481 tokens
+2026-06-09 23:47:36.128 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_2.sql
+2026-06-09 23:47:36.148 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:47:36.163 | INFO     | __main__:main:30 - Reduced query size: 481 tokens
+2026-06-09 23:47:36.163 | INFO     | __main__:main:38 - Token reduction: 0.00%
 Time taken: 0.23 seconds
+QUERY 3
+2026-06-09 23:47:36.373 | INFO     | __main__:main:22 - Original query size: 1564 tokens
+2026-06-09 23:47:36.373 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_3.sql
+2026-06-09 23:47:36.395 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:47:36.412 | INFO     | __main__:main:30 - Reduced query size: 1564 tokens
+2026-06-09 23:47:36.412 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.25 seconds
+QUERY 4
+2026-06-09 23:47:36.622 | INFO     | __main__:main:22 - Original query size: 955 tokens
+2026-06-09 23:47:36.622 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_4.sql
+2026-06-09 23:47:44.743 | INFO     | __main__:main:30 - Reduced query size: 107 tokens
+2026-06-09 23:47:44.743 | INFO     | __main__:main:38 - Token reduction: 88.80%
+Time taken: 8.33 seconds
+QUERY 5
+2026-06-09 23:47:44.951 | INFO     | __main__:main:22 - Original query size: 68 tokens
+2026-06-09 23:47:44.951 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_5.sql
+2026-06-09 23:47:45.696 | INFO     | __main__:main:30 - Reduced query size: 68 tokens
+2026-06-09 23:47:45.696 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.95 seconds
+QUERY 6
+2026-06-09 23:47:45.924 | INFO     | __main__:main:22 - Original query size: 3810 tokens
+2026-06-09 23:47:45.924 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_6.sql
+2026-06-09 23:47:51.165 | INFO     | __main__:main:30 - Reduced query size: 108 tokens
+2026-06-09 23:47:51.165 | INFO     | __main__:main:38 - Token reduction: 97.17%
+Time taken: 5.47 seconds
+QUERY 7
+2026-06-09 23:47:51.304 | INFO     | __main__:main:22 - Original query size: 619 tokens
+2026-06-09 23:47:51.304 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_7.sql
+2026-06-09 23:47:52.761 | INFO     | __main__:main:30 - Reduced query size: 19 tokens
+2026-06-09 23:47:52.761 | INFO     | __main__:main:38 - Token reduction: 96.93%
+Time taken: 1.59 seconds
+QUERY 8
+2026-06-09 23:47:52.972 | INFO     | __main__:main:22 - Original query size: 1694 tokens
+2026-06-09 23:47:52.972 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_8.sql
+2026-06-09 23:47:58.898 | INFO     | __main__:main:30 - Reduced query size: 93 tokens
+2026-06-09 23:47:58.898 | INFO     | __main__:main:38 - Token reduction: 94.51%
+Time taken: 6.14 seconds
+QUERY 9
+2026-06-09 23:47:59.144 | INFO     | __main__:main:22 - Original query size: 1245 tokens
+2026-06-09 23:47:59.144 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_9.sql
+2026-06-09 23:47:59.173 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:47:59.197 | INFO     | __main__:main:30 - Reduced query size: 1245 tokens
+2026-06-09 23:47:59.197 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.29 seconds
+QUERY 10
+2026-06-09 23:47:59.436 | INFO     | __main__:main:22 - Original query size: 259 tokens
+2026-06-09 23:47:59.436 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_10.sql
+2026-06-09 23:47:59.452 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:47:59.464 | INFO     | __main__:main:30 - Reduced query size: 259 tokens
+2026-06-09 23:47:59.464 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.27 seconds
 QUERY 11
-2026-06-09 21:50:26.073 | INFO     | __main__:main:21 - Original query size: 114 tokens
-2026-06-09 21:50:26.074 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_11.sql
-2026-06-09 21:50:27.178 | INFO     | __main__:main:29 - Reduced query size: 50 tokens
-2026-06-09 21:50:27.179 | INFO     | __main__:main:37 - Compression ratio: 2.28
-Time taken: 1.31 seconds
+2026-06-09 23:47:59.707 | INFO     | __main__:main:22 - Original query size: 114 tokens
+2026-06-09 23:47:59.707 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_11.sql
+2026-06-09 23:48:01.129 | INFO     | __main__:main:30 - Reduced query size: 50 tokens
+2026-06-09 23:48:01.129 | INFO     | __main__:main:38 - Token reduction: 56.14%
+Time taken: 1.66 seconds
 QUERY 12
-2026-06-09 21:50:27.408 | INFO     | __main__:main:21 - Original query size: 3818 tokens
-2026-06-09 21:50:27.408 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_12.sql
-2026-06-09 21:50:27.445 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:27.477 | INFO     | __main__:main:29 - Reduced query size: 3818 tokens
-2026-06-09 21:50:27.477 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.30 seconds
+2026-06-09 23:48:01.384 | INFO     | __main__:main:22 - Original query size: 3818 tokens
+2026-06-09 23:48:01.385 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_12.sql
+2026-06-09 23:48:01.425 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:48:01.459 | INFO     | __main__:main:30 - Reduced query size: 3818 tokens
+2026-06-09 23:48:01.460 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.32 seconds
 QUERY 13
-2026-06-09 21:50:27.692 | INFO     | __main__:main:21 - Original query size: 287 tokens
-2026-06-09 21:50:27.692 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_13.sql
-2026-06-09 21:50:31.557 | INFO     | __main__:main:29 - Reduced query size: 38 tokens
-2026-06-09 21:50:31.558 | INFO     | __main__:main:37 - Compression ratio: 7.552631578947368
-Time taken: 4.08 seconds
+2026-06-09 23:48:01.706 | INFO     | __main__:main:22 - Original query size: 287 tokens
+2026-06-09 23:48:01.706 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_13.sql
+2026-06-09 23:48:06.134 | INFO     | __main__:main:30 - Reduced query size: 38 tokens
+2026-06-09 23:48:06.134 | INFO     | __main__:main:38 - Token reduction: 86.76%
+Time taken: 4.68 seconds
 QUERY 14
-2026-06-09 21:50:31.812 | INFO     | __main__:main:21 - Original query size: 10787 tokens
-2026-06-09 21:50:31.812 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_14.sql
-2026-06-09 21:50:31.873 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:50:31.921 | INFO     | __main__:main:29 - Reduced query size: 10787 tokens
-2026-06-09 21:50:31.922 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.36 seconds
+2026-06-09 23:48:06.393 | INFO     | __main__:main:22 - Original query size: 10787 tokens
+2026-06-09 23:48:06.393 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_14.sql
+2026-06-09 23:48:06.454 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:48:06.502 | INFO     | __main__:main:30 - Reduced query size: 10787 tokens
+2026-06-09 23:48:06.502 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.35 seconds
 QUERY 15
-2026-06-09 21:50:32.134 | INFO     | __main__:main:21 - Original query size: 224 tokens
-2026-06-09 21:50:32.134 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_15.sql
-2026-06-09 21:50:39.931 | INFO     | __main__:main:29 - Reduced query size: 98 tokens
-2026-06-09 21:50:39.931 | INFO     | __main__:main:37 - Compression ratio: 2.2857142857142856
-Time taken: 8.01 seconds
+2026-06-09 23:48:06.709 | INFO     | __main__:main:22 - Original query size: 224 tokens
+2026-06-09 23:48:06.709 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_15.sql
+2026-06-09 23:48:14.778 | INFO     | __main__:main:30 - Reduced query size: 98 tokens
+2026-06-09 23:48:14.778 | INFO     | __main__:main:38 - Token reduction: 56.25%
+Time taken: 8.28 seconds
 QUERY 16
-2026-06-09 21:50:40.150 | INFO     | __main__:main:21 - Original query size: 5051 tokens
-2026-06-09 21:50:40.150 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_16.sql
-2026-06-09 21:50:59.659 | INFO     | __main__:main:29 - Reduced query size: 114 tokens
-2026-06-09 21:50:59.659 | INFO     | __main__:main:37 - Compression ratio: 44.30701754385965
-Time taken: 19.75 seconds
+2026-06-09 23:48:15.005 | INFO     | __main__:main:22 - Original query size: 5051 tokens
+2026-06-09 23:48:15.005 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_16.sql
+2026-06-09 23:48:34.187 | INFO     | __main__:main:30 - Reduced query size: 114 tokens
+2026-06-09 23:48:34.187 | INFO     | __main__:main:38 - Token reduction: 97.74%
+Time taken: 19.41 seconds
 QUERY 17
-2026-06-09 21:50:59.922 | INFO     | __main__:main:21 - Original query size: 10559 tokens
-2026-06-09 21:50:59.923 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_17.sql
-2026-06-09 21:51:00.008 | ERROR    | src.reducer:hdd:94 - Error parsing SQL
-2026-06-09 21:51:00.112 | INFO     | __main__:main:29 - Reduced query size: 10559 tokens
-2026-06-09 21:51:00.112 | INFO     | __main__:main:37 - Compression ratio: 1.0
-Time taken: 0.43 seconds
+2026-06-09 23:48:34.451 | INFO     | __main__:main:22 - Original query size: 10559 tokens
+2026-06-09 23:48:34.451 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_17.sql
+2026-06-09 23:48:34.551 | ERROR    | src.sqlglot_reducer:hdd:93 - Error parsing SQL
+2026-06-09 23:48:34.659 | INFO     | __main__:main:30 - Reduced query size: 10559 tokens
+2026-06-09 23:48:34.659 | INFO     | __main__:main:38 - Token reduction: 0.00%
+Time taken: 0.46 seconds
 QUERY 18
-2026-06-09 21:51:00.333 | INFO     | __main__:main:21 - Original query size: 209 tokens
-2026-06-09 21:51:00.333 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_18.sql
-2026-06-09 21:51:04.283 | INFO     | __main__:main:29 - Reduced query size: 101 tokens
-2026-06-09 21:51:04.283 | INFO     | __main__:main:37 - Compression ratio: 2.0693069306930694
-Time taken: 4.17 seconds
+2026-06-09 23:48:34.870 | INFO     | __main__:main:22 - Original query size: 209 tokens
+2026-06-09 23:48:34.871 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_18.sql
+2026-06-09 23:48:39.030 | INFO     | __main__:main:30 - Reduced query size: 101 tokens
+2026-06-09 23:48:39.030 | INFO     | __main__:main:38 - Token reduction: 51.67%
+Time taken: 4.37 seconds
 QUERY 19
-2026-06-09 21:51:04.502 | INFO     | __main__:main:21 - Original query size: 211 tokens
-2026-06-09 21:51:04.502 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_19.sql
-2026-06-09 21:51:07.613 | INFO     | __main__:main:29 - Reduced query size: 81 tokens
-2026-06-09 21:51:07.613 | INFO     | __main__:main:37 - Compression ratio: 2.6049382716049383
-Time taken: 3.32 seconds
+2026-06-09 23:48:39.244 | INFO     | __main__:main:22 - Original query size: 211 tokens
+2026-06-09 23:48:39.244 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_19.sql
+2026-06-09 23:48:43.152 | INFO     | __main__:main:30 - Reduced query size: 81 tokens
+2026-06-09 23:48:43.152 | INFO     | __main__:main:38 - Token reduction: 61.61%
+Time taken: 4.12 seconds
 QUERY 20
-2026-06-09 21:51:07.856 | INFO     | __main__:main:21 - Original query size: 9539 tokens
-2026-06-09 21:51:07.856 | INFO     | __main__:main:22 - The reduced query will be saved to: reductions/sqlglot/query_20.sql
-2026-06-09 21:51:16.555 | INFO     | __main__:main:29 - Reduced query size: 109 tokens
-2026-06-09 21:51:16.556 | INFO     | __main__:main:37 - Compression ratio: 87.5137614678899
-Time taken: 8.95 seconds
+2026-06-09 23:48:43.389 | INFO     | __main__:main:22 - Original query size: 9539 tokens
+2026-06-09 23:48:43.389 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/sqlglot/query_20.sql
+2026-06-09 23:48:52.098 | INFO     | __main__:main:30 - Reduced query size: 109 tokens
+2026-06-09 23:48:52.098 | INFO     | __main__:main:38 - Token reduction: 98.86%
+Time taken: 8.94 seconds
