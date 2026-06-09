@@ -5,7 +5,7 @@ from sqlglot import exp, parse_one
 SQL_DIALECT = "sqlite"
 
 
-class SQLReducer:
+class SQLQlotReducer:
     def __init__(self, original_query_path: str, test_path: str):
         self.original_query_path = original_query_path
         self.test_path = test_path
