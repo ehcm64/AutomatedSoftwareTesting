@@ -1,0 +1,88 @@
+QUERY 1
+2026-06-09 20:54:13.852 | INFO     | src.reducer:run:175 - Reduction failed, query size increased: 287 > 216
+2026-06-09 20:54:13.852 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:13.852 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 6.25 seconds
+QUERY 2
+2026-06-09 20:54:14.070 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:14.087 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:14.087 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.23 seconds
+QUERY 3
+2026-06-09 20:54:14.307 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:14.330 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:14.330 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.24 seconds
+QUERY 4
+2026-06-09 20:54:22.466 | INFO     | src.reducer:run:180 - Compression ratio: 8.925233644859814
+2026-06-09 20:54:22.466 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 8.14 seconds
+QUERY 5
+2026-06-09 20:54:23.386 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:23.386 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.92 seconds
+QUERY 6
+2026-06-09 20:54:28.709 | INFO     | src.reducer:run:180 - Compression ratio: 35.27777777777778
+2026-06-09 20:54:28.709 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 5.32 seconds
+QUERY 7
+2026-06-09 20:54:30.418 | INFO     | src.reducer:run:180 - Compression ratio: 32.578947368421055
+2026-06-09 20:54:30.418 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 1.72 seconds
+QUERY 8
+2026-06-09 20:54:36.513 | INFO     | src.reducer:run:180 - Compression ratio: 18.21505376344086
+2026-06-09 20:54:36.513 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 6.09 seconds
+QUERY 9
+2026-06-09 20:54:36.740 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:36.764 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:36.764 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.25 seconds
+QUERY 10
+2026-06-09 20:54:36.981 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:36.990 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:36.990 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.22 seconds
+QUERY 11
+2026-06-09 20:54:38.267 | INFO     | src.reducer:run:180 - Compression ratio: 2.28
+2026-06-09 20:54:38.267 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 1.28 seconds
+QUERY 12
+2026-06-09 20:54:38.570 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:38.610 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:38.610 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.35 seconds
+QUERY 13
+2026-06-09 20:54:42.606 | INFO     | src.reducer:run:180 - Compression ratio: 7.552631578947368
+2026-06-09 20:54:42.606 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 3.99 seconds
+QUERY 14
+2026-06-09 20:54:42.860 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:54:42.943 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:54:42.943 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.34 seconds
+QUERY 15
+2026-06-09 20:54:50.939 | INFO     | src.reducer:run:180 - Compression ratio: 2.2857142857142856
+2026-06-09 20:54:50.939 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 7.99 seconds
+QUERY 16
+2026-06-09 20:55:10.163 | INFO     | src.reducer:run:180 - Compression ratio: 44.30701754385965
+2026-06-09 20:55:10.163 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 19.23 seconds
+QUERY 17
+2026-06-09 20:55:10.447 | ERROR    | src.reducer:hdd:98 - Error parsing SQL
+2026-06-09 20:55:10.567 | INFO     | src.reducer:run:180 - Compression ratio: 1.0
+2026-06-09 20:55:10.568 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 0.40 seconds
+QUERY 18
+2026-06-09 20:55:16.349 | INFO     | src.reducer:run:180 - Compression ratio: 2.0693069306930694
+2026-06-09 20:55:16.350 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 5.79 seconds
+QUERY 19
+2026-06-09 20:55:20.182 | INFO     | src.reducer:run:180 - Compression ratio: 2.6049382716049383
+2026-06-09 20:55:20.183 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 3.83 seconds
+QUERY 20
+2026-06-09 20:55:29.482 | INFO     | src.reducer:run:180 - Compression ratio: 87.5137614678899
+2026-06-09 20:55:29.483 | INFO     | src.reducer:run:182 - Reduced query saved to query.sql
+Time taken: 9.31 seconds
