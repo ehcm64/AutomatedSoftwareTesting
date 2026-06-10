@@ -1,0 +1,4 @@
+CREATE TABLE t0 (c0  , c1 , c2  , c3  );
+CREATE INDEX i8 ON t0(c1) WHERE (t0.c3 < 'default');
+INSERT INTO t0 (c0, c1, c2, c3) VALUES          (30, 69, 'unique_9_330', 'unique_9_340');
+SELECT   COALESCE((t0.c0) , 9) FROM t0 WHERE (t0.c1) IN (SELECT t0.c1 FROM t0)
