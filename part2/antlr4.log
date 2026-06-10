@@ -1,120 +1,120 @@
 QUERY 1
-2026-06-09 23:59:33.942 | INFO     | __main__:main:24 - Original query size: 216 tokens
-2026-06-09 23:59:33.943 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_1.sql
-2026-06-10 00:00:00.806 | INFO     | __main__:main:37 - Reduced query size: 180 tokens
-2026-06-10 00:00:00.806 | INFO     | __main__:main:45 - Token reduction: 16.67%
-Time taken: 27.12 seconds
+2026-06-10 15:06:05.932 | INFO     | __main__:main:24 - Original query size: 216 tokens
+2026-06-10 15:06:05.932 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_1.sql
+2026-06-10 15:06:30.691 | INFO     | __main__:main:37 - Reduced query size: 180 tokens
+2026-06-10 15:06:30.691 | INFO     | __main__:main:45 - Token reduction: 16.67%
+Time taken: 25.25 seconds
 QUERY 2
-2026-06-10 00:00:01.085 | INFO     | __main__:main:24 - Original query size: 481 tokens
-2026-06-10 00:00:01.085 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_2.sql
-2026-06-10 00:00:06.648 | INFO     | __main__:main:37 - Reduced query size: 94 tokens
-2026-06-10 00:00:06.648 | INFO     | __main__:main:45 - Token reduction: 80.46%
-Time taken: 5.84 seconds
+2026-06-10 15:06:30.940 | INFO     | __main__:main:24 - Original query size: 481 tokens
+2026-06-10 15:06:30.940 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_2.sql
+2026-06-10 15:06:36.186 | INFO     | __main__:main:37 - Reduced query size: 94 tokens
+2026-06-10 15:06:36.186 | INFO     | __main__:main:45 - Token reduction: 80.46%
+Time taken: 5.49 seconds
 QUERY 3
-2026-06-10 00:00:06.915 | INFO     | __main__:main:24 - Original query size: 1564 tokens
-2026-06-10 00:00:06.916 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_3.sql
-2026-06-10 00:00:09.974 | INFO     | __main__:main:37 - Reduced query size: 64 tokens
-2026-06-10 00:00:09.974 | INFO     | __main__:main:45 - Token reduction: 95.91%
-Time taken: 3.34 seconds
+2026-06-10 15:06:36.442 | INFO     | __main__:main:24 - Original query size: 1564 tokens
+2026-06-10 15:06:36.442 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_3.sql
+2026-06-10 15:06:39.910 | INFO     | __main__:main:37 - Reduced query size: 64 tokens
+2026-06-10 15:06:39.910 | INFO     | __main__:main:45 - Token reduction: 95.91%
+Time taken: 3.74 seconds
 QUERY 4
-2026-06-10 00:00:10.335 | INFO     | __main__:main:24 - Original query size: 955 tokens
-2026-06-10 00:00:10.335 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_4.sql
-2026-06-10 00:00:20.773 | INFO     | __main__:main:37 - Reduced query size: 115 tokens
-2026-06-10 00:00:20.773 | INFO     | __main__:main:45 - Token reduction: 87.96%
-Time taken: 10.78 seconds
+2026-06-10 15:06:40.213 | INFO     | __main__:main:24 - Original query size: 955 tokens
+2026-06-10 15:06:40.214 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_4.sql
+2026-06-10 15:06:49.048 | INFO     | __main__:main:37 - Reduced query size: 115 tokens
+2026-06-10 15:06:49.048 | INFO     | __main__:main:45 - Token reduction: 87.96%
+Time taken: 9.14 seconds
 QUERY 5
-2026-06-10 00:00:21.082 | INFO     | __main__:main:24 - Original query size: 68 tokens
-2026-06-10 00:00:21.082 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_5.sql
-2026-06-10 00:00:22.728 | INFO     | __main__:main:37 - Reduced query size: 44 tokens
-2026-06-10 00:00:22.728 | INFO     | __main__:main:45 - Token reduction: 35.29%
-Time taken: 1.94 seconds
+2026-06-10 15:06:49.318 | INFO     | __main__:main:24 - Original query size: 68 tokens
+2026-06-10 15:06:49.318 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_5.sql
+2026-06-10 15:06:50.813 | INFO     | __main__:main:37 - Reduced query size: 44 tokens
+2026-06-10 15:06:50.813 | INFO     | __main__:main:45 - Token reduction: 35.29%
+Time taken: 1.74 seconds
 QUERY 6
-2026-06-10 00:00:22.983 | INFO     | __main__:main:24 - Original query size: 3810 tokens
-2026-06-10 00:00:22.983 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_6.sql
-2026-06-10 00:00:43.143 | INFO     | __main__:main:37 - Reduced query size: 104 tokens
-2026-06-10 00:00:43.143 | INFO     | __main__:main:45 - Token reduction: 97.27%
-Time taken: 20.43 seconds
+2026-06-10 15:06:51.084 | INFO     | __main__:main:24 - Original query size: 3810 tokens
+2026-06-10 15:06:51.084 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_6.sql
+2026-06-10 15:07:09.343 | INFO     | __main__:main:37 - Reduced query size: 104 tokens
+2026-06-10 15:07:09.343 | INFO     | __main__:main:45 - Token reduction: 97.27%
+Time taken: 18.54 seconds
 QUERY 7
-2026-06-10 00:00:43.420 | INFO     | __main__:main:24 - Original query size: 619 tokens
-2026-06-10 00:00:43.420 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_7.sql
-2026-06-10 00:00:59.261 | INFO     | __main__:main:37 - Reduced query size: 619 tokens
-2026-06-10 00:00:59.261 | INFO     | __main__:main:45 - Token reduction: 0.00%
-Time taken: 16.13 seconds
+2026-06-10 15:07:09.609 | INFO     | __main__:main:24 - Original query size: 619 tokens
+2026-06-10 15:07:09.609 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_7.sql
+2026-06-10 15:07:24.895 | INFO     | __main__:main:37 - Reduced query size: 619 tokens
+2026-06-10 15:07:24.896 | INFO     | __main__:main:45 - Token reduction: 0.00%
+Time taken: 15.57 seconds
 QUERY 8
-2026-06-10 00:00:59.557 | INFO     | __main__:main:24 - Original query size: 1694 tokens
-2026-06-10 00:00:59.557 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_8.sql
-2026-06-10 00:01:12.686 | INFO     | __main__:main:37 - Reduced query size: 170 tokens
-2026-06-10 00:01:12.686 | INFO     | __main__:main:45 - Token reduction: 89.96%
-Time taken: 13.44 seconds
+2026-06-10 15:07:25.214 | INFO     | __main__:main:24 - Original query size: 1694 tokens
+2026-06-10 15:07:25.214 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_8.sql
+2026-06-10 15:07:38.994 | INFO     | __main__:main:37 - Reduced query size: 170 tokens
+2026-06-10 15:07:38.994 | INFO     | __main__:main:45 - Token reduction: 89.96%
+Time taken: 14.20 seconds
 QUERY 9
-2026-06-10 00:01:12.988 | INFO     | __main__:main:24 - Original query size: 1245 tokens
-2026-06-10 00:01:12.988 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_9.sql
-2026-06-10 00:01:13.608 | INFO     | __main__:main:37 - Reduced query size: 36 tokens
-2026-06-10 00:01:13.608 | INFO     | __main__:main:45 - Token reduction: 97.11%
-Time taken: 0.89 seconds
+2026-06-10 15:07:39.719 | INFO     | __main__:main:24 - Original query size: 1245 tokens
+2026-06-10 15:07:39.719 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_9.sql
+2026-06-10 15:07:40.813 | INFO     | __main__:main:37 - Reduced query size: 36 tokens
+2026-06-10 15:07:40.813 | INFO     | __main__:main:45 - Token reduction: 97.11%
+Time taken: 1.74 seconds
 QUERY 10
-2026-06-10 00:01:13.876 | INFO     | __main__:main:24 - Original query size: 259 tokens
-2026-06-10 00:01:13.877 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_10.sql
-2026-06-10 00:01:15.935 | INFO     | __main__:main:37 - Reduced query size: 48 tokens
-2026-06-10 00:01:15.935 | INFO     | __main__:main:45 - Token reduction: 81.47%
-Time taken: 2.33 seconds
+2026-06-10 15:07:41.168 | INFO     | __main__:main:24 - Original query size: 259 tokens
+2026-06-10 15:07:41.168 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_10.sql
+2026-06-10 15:07:43.189 | INFO     | __main__:main:37 - Reduced query size: 48 tokens
+2026-06-10 15:07:43.189 | INFO     | __main__:main:45 - Token reduction: 81.47%
+Time taken: 2.31 seconds
 QUERY 11
-2026-06-10 00:01:16.238 | INFO     | __main__:main:24 - Original query size: 114 tokens
-2026-06-10 00:01:16.238 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_11.sql
-2026-06-10 00:01:21.775 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
-2026-06-10 00:01:21.775 | INFO     | __main__:main:45 - Token reduction: 28.95%
-Time taken: 5.82 seconds
+2026-06-10 15:07:43.441 | INFO     | __main__:main:24 - Original query size: 114 tokens
+2026-06-10 15:07:43.441 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_11.sql
+2026-06-10 15:07:48.556 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
+2026-06-10 15:07:48.556 | INFO     | __main__:main:45 - Token reduction: 28.95%
+Time taken: 5.37 seconds
 QUERY 12
-2026-06-10 00:01:22.039 | INFO     | __main__:main:24 - Original query size: 3818 tokens
-2026-06-10 00:01:22.039 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_12.sql
-2026-06-10 00:01:49.111 | INFO     | __main__:main:37 - Reduced query size: 80 tokens
-2026-06-10 00:01:49.111 | INFO     | __main__:main:45 - Token reduction: 97.90%
-Time taken: 27.34 seconds
+2026-06-10 15:07:48.830 | INFO     | __main__:main:24 - Original query size: 3818 tokens
+2026-06-10 15:07:48.830 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_12.sql
+2026-06-10 15:08:15.249 | INFO     | __main__:main:37 - Reduced query size: 80 tokens
+2026-06-10 15:08:15.249 | INFO     | __main__:main:45 - Token reduction: 97.90%
+Time taken: 26.69 seconds
 QUERY 13
-2026-06-10 00:01:49.382 | INFO     | __main__:main:24 - Original query size: 287 tokens
-2026-06-10 00:01:49.383 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_13.sql
-2026-06-10 00:01:52.865 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
-2026-06-10 00:01:52.866 | INFO     | __main__:main:45 - Token reduction: 71.78%
-Time taken: 3.76 seconds
+2026-06-10 15:08:15.493 | INFO     | __main__:main:24 - Original query size: 287 tokens
+2026-06-10 15:08:15.494 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_13.sql
+2026-06-10 15:08:18.713 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
+2026-06-10 15:08:18.714 | INFO     | __main__:main:45 - Token reduction: 71.78%
+Time taken: 3.46 seconds
 QUERY 14
-2026-06-10 00:01:53.157 | INFO     | __main__:main:24 - Original query size: 10787 tokens
-2026-06-10 00:01:53.157 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_14.sql
-2026-06-10 00:15:23.382 | INFO     | __main__:main:37 - Reduced query size: 786 tokens
-2026-06-10 00:15:23.382 | INFO     | __main__:main:45 - Token reduction: 92.71%
-Time taken: 810.55 seconds
+2026-06-10 15:08:18.995 | INFO     | __main__:main:24 - Original query size: 10787 tokens
+2026-06-10 15:08:18.995 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_14.sql
+2026-06-10 15:22:11.967 | INFO     | __main__:main:37 - Reduced query size: 786 tokens
+2026-06-10 15:22:11.967 | INFO     | __main__:main:45 - Token reduction: 92.71%
+Time taken: 833.30 seconds
 QUERY 15
-2026-06-10 00:15:23.699 | INFO     | __main__:main:24 - Original query size: 224 tokens
-2026-06-10 00:15:23.699 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_15.sql
-2026-06-10 00:15:30.194 | INFO     | __main__:main:37 - Reduced query size: 105 tokens
-2026-06-10 00:15:30.195 | INFO     | __main__:main:45 - Token reduction: 53.12%
-Time taken: 6.77 seconds
+2026-06-10 15:22:12.311 | INFO     | __main__:main:24 - Original query size: 224 tokens
+2026-06-10 15:22:12.311 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_15.sql
+2026-06-10 15:22:19.739 | INFO     | __main__:main:37 - Reduced query size: 105 tokens
+2026-06-10 15:22:19.739 | INFO     | __main__:main:45 - Token reduction: 53.12%
+Time taken: 7.72 seconds
 QUERY 16
-2026-06-10 00:15:30.471 | INFO     | __main__:main:24 - Original query size: 5051 tokens
-2026-06-10 00:15:30.471 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_16.sql
-2026-06-10 00:16:00.035 | INFO     | __main__:main:37 - Reduced query size: 138 tokens
-2026-06-10 00:16:00.035 | INFO     | __main__:main:45 - Token reduction: 97.27%
-Time taken: 30.10 seconds
+2026-06-10 15:22:20.109 | INFO     | __main__:main:24 - Original query size: 5051 tokens
+2026-06-10 15:22:20.109 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_16.sql
+2026-06-10 15:22:53.331 | INFO     | __main__:main:37 - Reduced query size: 138 tokens
+2026-06-10 15:22:53.332 | INFO     | __main__:main:45 - Token reduction: 97.27%
+Time taken: 33.80 seconds
 QUERY 17
-2026-06-10 00:16:00.582 | INFO     | __main__:main:24 - Original query size: 10559 tokens
-2026-06-10 00:16:00.582 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_17.sql
-2026-06-10 00:16:00.748 | INFO     | __main__:main:37 - Reduced query size: 10559 tokens
-2026-06-10 00:16:00.748 | INFO     | __main__:main:45 - Token reduction: 0.00%
-Time taken: 0.44 seconds
+2026-06-10 15:22:53.882 | INFO     | __main__:main:24 - Original query size: 10559 tokens
+2026-06-10 15:22:53.882 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_17.sql
+2026-06-10 15:22:54.055 | INFO     | __main__:main:37 - Reduced query size: 10559 tokens
+2026-06-10 15:22:54.055 | INFO     | __main__:main:45 - Token reduction: 0.00%
+Time taken: 0.49 seconds
 QUERY 18
-2026-06-10 00:16:01.004 | INFO     | __main__:main:24 - Original query size: 209 tokens
-2026-06-10 00:16:01.004 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_18.sql
-2026-06-10 00:16:24.475 | INFO     | __main__:main:37 - Reduced query size: 137 tokens
-2026-06-10 00:16:24.475 | INFO     | __main__:main:45 - Token reduction: 34.45%
-Time taken: 23.74 seconds
+2026-06-10 15:22:54.332 | INFO     | __main__:main:24 - Original query size: 209 tokens
+2026-06-10 15:22:54.332 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_18.sql
+2026-06-10 15:23:21.542 | INFO     | __main__:main:37 - Reduced query size: 137 tokens
+2026-06-10 15:23:21.542 | INFO     | __main__:main:45 - Token reduction: 34.45%
+Time taken: 27.50 seconds
 QUERY 19
-2026-06-10 00:16:24.742 | INFO     | __main__:main:24 - Original query size: 211 tokens
-2026-06-10 00:16:24.743 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_19.sql
-2026-06-10 00:16:28.776 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
-2026-06-10 00:16:28.777 | INFO     | __main__:main:45 - Token reduction: 61.61%
-Time taken: 4.29 seconds
+2026-06-10 15:23:21.848 | INFO     | __main__:main:24 - Original query size: 211 tokens
+2026-06-10 15:23:21.848 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_19.sql
+2026-06-10 15:23:26.191 | INFO     | __main__:main:37 - Reduced query size: 81 tokens
+2026-06-10 15:23:26.192 | INFO     | __main__:main:45 - Token reduction: 61.61%
+Time taken: 4.63 seconds
 QUERY 20
-2026-06-10 00:16:29.083 | INFO     | __main__:main:24 - Original query size: 9539 tokens
-2026-06-10 00:16:29.083 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_20.sql
-2026-06-10 00:18:32.696 | INFO     | __main__:main:37 - Reduced query size: 331 tokens
-2026-06-10 00:18:32.696 | INFO     | __main__:main:45 - Token reduction: 96.53%
-Time taken: 124.01 seconds
+2026-06-10 15:23:26.493 | INFO     | __main__:main:24 - Original query size: 9539 tokens
+2026-06-10 15:23:26.493 | INFO     | __main__:main:25 - The reduced query will be saved to: reductions/antlr4/query_20.sql
+2026-06-10 15:25:17.948 | INFO     | __main__:main:37 - Reduced query size: 331 tokens
+2026-06-10 15:25:17.948 | INFO     | __main__:main:45 - Token reduction: 96.53%
+Time taken: 111.90 seconds
