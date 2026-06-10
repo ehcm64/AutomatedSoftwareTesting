@@ -39,7 +39,7 @@ class Antlr4Reducer:
             # Depth 1: At the highest level, we split at the statement level.
             # ANTLR4 grammar has some problems to enumerate all statements (e.g., query 7),
             # so we parse based on the semicolon token, which proved to be enough.
-            stmts = self._split_statements(current_sql)
+            stmts = [s.strip() for s in current_sql.split(';') if s.strip()]
             last_d1: list[str] = [None]
 
             def test_stmts(kept_stmts):
@@ -100,29 +100,6 @@ class Antlr4Reducer:
                 break
 
         return current_sql
-
-
-    def _split_statements(self, sql: str) -> list[str]:
-        from antlr4 import Token
-        stream = InputStream(sql)
-        lexer = SQLiteLexer(stream)
-        lexer.removeErrorListeners()
-        tokens = CommonTokenStream(lexer)
-        tokens.fill()
-        stmts = []
-        stmt_start = 0
-        for tok in tokens.tokens:
-            if tok.type == Token.EOF:
-                tail = sql[stmt_start:tok.start].strip()
-                if tail:
-                    stmts.append(tail)
-                break
-            if tok.channel == 0 and tok.text == ';':
-                stmt = sql[stmt_start:tok.stop + 1].strip()
-                if stmt:
-                    stmts.append(stmt)
-                stmt_start = tok.stop + 1
-        return stmts
 
 
     def _parse(self, sql: str):
