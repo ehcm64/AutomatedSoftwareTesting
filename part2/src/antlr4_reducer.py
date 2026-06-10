@@ -20,8 +20,109 @@ class Antlr4Reducer:
 
 
     def save_query(self, query: str) -> None:
+        """Persist the final and the intermediate reduced queries to the same file as required."""
         with open(self.original_query_path, "w") as f:
             f.write(query)
+
+
+    def hdd(self) -> str:
+        with open(self.original_query_path, "r") as f:
+            sql_query = f.read()
+        assert self.executor.execute(sql_query)
+
+        current_sql = sql_query
+
+        for reduction_pass in range(10):  # HDD*
+            logger.debug(f"Reduction pass #{reduction_pass + 1}")
+            progress = False
+
+            # Depth 1: At the highest level, we split at the statement level.
+            # ANTLR4 grammar has some problems to enumerate all statements (e.g., query 7),
+            # so we parse based on the semicolon token, which proved to be enough.
+            stmts = self._split_statements(current_sql)
+            last_d1: list[str] = [None]
+
+            def test_stmts(kept_stmts):
+                candidate = ';\n'.join(kept_stmts) + ';'
+                result = self.executor.execute(candidate)
+                if result:
+                    last_d1[0] = candidate
+                return result
+
+            kept_stmts = self._ddmin(stmts, test_stmts)
+            logger.debug(f"Pass {reduction_pass + 1}, depth 1: {len(stmts)} -> {len(kept_stmts)} stmts")
+
+            if len(kept_stmts) < len(stmts):
+                current_sql = last_d1[0]
+                self.save_query(current_sql)
+                progress = True
+
+            # Depth >=2: From depth 2 downwards, we rely on the ANTLR4 parse tree.
+            try:
+                tree, tokens = self._parse(current_sql)
+            except Exception:
+                logger.error("Error parsing SQL")
+                break
+
+            depth = 2
+            levels = self._bfs_levels(tree, max_depth=depth)
+
+            while depth < len(levels):
+                level_nodes = levels[depth]
+                last_d2: list[str] = [None]
+
+                def test_fn(kept_nodes, _level_nodes=level_nodes, _tokens=tokens):
+                    to_remove = [n for n in _level_nodes if n not in set(kept_nodes)]
+                    try:
+                        candidate = self._apply_removals(_tokens, to_remove)
+                        self._parse(candidate)
+                        result = self.executor.execute(candidate)
+                        if result:
+                            last_d2[0] = candidate
+                        return result
+                    except Exception:
+                        return False
+
+                kept = self._ddmin(level_nodes, test_fn)
+
+                logger.debug(f"Pass {reduction_pass + 1}, depth {depth}: {len(level_nodes)} -> {len(kept)} nodes")
+
+                if len(kept) < len(level_nodes):
+                    current_sql = last_d2[0]
+                    self.save_query(current_sql)
+                    progress = True
+                    tree, tokens = self._parse(current_sql)
+
+                depth += 1
+                levels = self._bfs_levels(tree, depth)
+
+            if not progress:
+                break
+
+        return current_sql
+
+
+    def _split_statements(self, sql: str) -> list[str]:
+        from antlr4 import Token
+        stream = InputStream(sql)
+        lexer = SQLiteLexer(stream)
+        lexer.removeErrorListeners()
+        tokens = CommonTokenStream(lexer)
+        tokens.fill()
+        stmts = []
+        stmt_start = 0
+        for tok in tokens.tokens:
+            if tok.type == Token.EOF:
+                tail = sql[stmt_start:tok.start].strip()
+                if tail:
+                    stmts.append(tail)
+                break
+            if tok.channel == 0 and tok.text == ';':
+                stmt = sql[stmt_start:tok.stop + 1].strip()
+                if stmt:
+                    stmts.append(stmt)
+                stmt_start = tok.stop + 1
+        return stmts
 
 
     def _parse(self, sql: str):
@@ -114,58 +215,3 @@ class Antlr4Reducer:
                 granularity = min(granularity * 2, len(elements))
 
         return elements
-
-
-    def hdd(self) -> str:
-        with open(self.original_query_path, "r") as f:
-            sql_query = f.read()
-        assert self.executor.execute(sql_query)
-
-        current_sql = sql_query
-
-        for reduction_pass in range(10):  # HDD*
-            logger.debug(f"Reduction pass #{reduction_pass + 1}")
-
-            try:
-                tree, tokens = self._parse(current_sql)
-            except Exception:
-                logger.error("Error parsing SQL")
-                break
-
-            depth = 1  # ignore root
-            levels = self._bfs_levels(tree, max_depth=depth)
-            progress = False
-
-            while depth < len(levels):
-                level_nodes = levels[depth]
-                last_candidate: list[str] = [None]
-
-                def test_fn(kept_nodes, _level_nodes=level_nodes, _tokens=tokens):
-                    to_remove = [n for n in _level_nodes if n not in set(kept_nodes)]
-                    try:
-                        candidate = self._apply_removals(_tokens, to_remove)
-                        self._parse(candidate)
-                        result = self.executor.execute(candidate)
-                        if result:
-                            last_candidate[0] = candidate
-                        return result
-                    except Exception:
-                        return False
-
-                kept = self._ddmin(level_nodes, test_fn)
-
-                logger.debug(f"Pass {reduction_pass + 1}, level {depth}: {len(level_nodes)} -> {len(kept)} nodes")
-
-                if len(kept) < len(level_nodes):
-                    current_sql = last_candidate[0]
-                    self.save_query(current_sql)
-                    progress = True
-                    tree, tokens = self._parse(current_sql)
-
-                depth += 1
-                levels = self._bfs_levels(tree, depth)
-
-            if not progress:
-                break
-
-        return current_sql
