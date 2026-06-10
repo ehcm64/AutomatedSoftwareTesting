@@ -1,3 +1,4 @@
+import time
 from loguru import logger
 from .executor import OracleExecutor
 from .grammar.SQLiteLexer import SQLiteLexer
@@ -25,16 +26,29 @@ class Antlr4Reducer:
             f.write(query)
 
 
-    def hdd(self) -> str:
+    def hdd(self, reduction_passes: int = 10, min_reduction: float = 1.0, time_limit: float = 60.0) -> str:
+        """
+        Hierarchical Delta Debugging (HDD) implementation.
+        Termination conditions:
+        - If a reduction pass achieves less than `min_reduction` percent reduction, we stop.
+        - If the total time taken exceeds `time_limit` seconds, we stop.
+        - If we reach `reduction_passes` passes, we stop.
+        """
         with open(self.original_query_path, "r") as f:
             sql_query = f.read()
         assert self.executor.execute(sql_query)
 
         current_sql = sql_query
+        deadline = time.time() + time_limit
 
-        for reduction_pass in range(10):  # HDD*
-            logger.debug(f"Reduction pass #{reduction_pass + 1}")
-            progress = False
+        for reduction_pass in range(reduction_passes):
+            logger.debug(f"Reduction pass {reduction_pass + 1}")
+
+            if time.time() >= deadline:
+                logger.info(f"Termination: Reached time limit of {time_limit:.2f} seconds")
+                return current_sql
+
+            pass_start_size = len(current_sql)
 
             # Depth 1: At the highest level, we split at the statement level.
             # ANTLR4 grammar has some problems to enumerate all statements (e.g., query 7),
@@ -43,6 +57,8 @@ class Antlr4Reducer:
             last_d1: list[str] = [None]
 
             def test_stmts(kept_stmts):
+                if time.time() >= deadline:
+                    return False
                 candidate = ';\n'.join(kept_stmts) + ';'
                 result = self.executor.execute(candidate)
                 if result:
@@ -55,23 +71,32 @@ class Antlr4Reducer:
             if len(kept_stmts) < len(stmts):
                 current_sql = last_d1[0]
                 self.save_query(current_sql)
-                progress = True
+
+            if time.time() >= deadline:
+                logger.info(f"Termination: Reached time limit of {time_limit:.2f} seconds")
+                return current_sql
 
             # Depth >=2: From depth 2 downwards, we rely on the ANTLR4 parse tree.
             try:
                 tree, tokens = self._parse(current_sql)
             except Exception:
                 logger.error("Error parsing SQL")
-                break
+                return current_sql
 
             depth = 2
             levels = self._bfs_levels(tree, max_depth=depth)
 
             while depth < len(levels):
+                if time.time() >= deadline:
+                    logger.info(f"Termination: Reached time limit of {time_limit:.2f} seconds")
+                    return current_sql
+
                 level_nodes = levels[depth]
                 last_d2: list[str] = [None]
 
                 def test_fn(kept_nodes, _level_nodes=level_nodes, _tokens=tokens):
+                    if time.time() >= deadline:
+                        return False
                     to_remove = [n for n in _level_nodes if n not in set(kept_nodes)]
                     try:
                         candidate = self._apply_removals(_tokens, to_remove)
@@ -90,15 +115,18 @@ class Antlr4Reducer:
                 if len(kept) < len(level_nodes):
                     current_sql = last_d2[0]
                     self.save_query(current_sql)
-                    progress = True
                     tree, tokens = self._parse(current_sql)
 
                 depth += 1
                 levels = self._bfs_levels(tree, depth)
 
-            if not progress:
-                break
+            pass_reduction = (pass_start_size - len(current_sql)) / pass_start_size * 100
+            logger.debug(f"Pass {reduction_pass + 1} size reduction: {pass_reduction:.2f}%")
 
+            if pass_reduction < min_reduction:
+                logger.info(f"Termination: Reduction {pass_reduction:.2f}% is less than minimum {min_reduction:.2f}%")
+                return current_sql
+        logger.info(f"Termination: Reached maximum reduction passes of {reduction_passes}")
         return current_sql
 
 
