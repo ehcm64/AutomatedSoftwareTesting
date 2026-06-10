@@ -1,0 +1,78 @@
+QUERY 1
+2026-06-09 22:04:30.322 | INFO     | __main__:main:22 - Original query size: 216 tokens
+2026-06-09 22:04:30.322 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_1.sql
+2026-06-09 22:04:58.149 | INFO     | __main__:main:30 - Reduced query size: 180 tokens
+2026-06-09 22:04:58.149 | INFO     | __main__:main:38 - Compression ratio: 1.2
+Time taken: 28.16 seconds
+QUERY 2
+2026-06-09 22:04:58.414 | INFO     | __main__:main:22 - Original query size: 481 tokens
+2026-06-09 22:04:58.414 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_2.sql
+2026-06-09 22:05:04.240 | INFO     | __main__:main:30 - Reduced query size: 109 tokens
+2026-06-09 22:05:04.240 | INFO     | __main__:main:38 - Compression ratio: 4.412844036697248
+Time taken: 6.08 seconds
+QUERY 3
+2026-06-09 22:05:04.494 | INFO     | __main__:main:22 - Original query size: 1564 tokens
+2026-06-09 22:05:04.494 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_3.sql
+2026-06-09 22:05:08.328 | INFO     | __main__:main:30 - Reduced query size: 156 tokens
+2026-06-09 22:05:08.329 | INFO     | __main__:main:38 - Compression ratio: 10.025641025641026
+Time taken: 4.11 seconds
+QUERY 4
+2026-06-09 22:05:08.620 | INFO     | __main__:main:22 - Original query size: 955 tokens
+2026-06-09 22:05:08.620 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_4.sql
+2026-06-09 22:05:19.379 | INFO     | __main__:main:30 - Reduced query size: 153 tokens
+2026-06-09 22:05:19.379 | INFO     | __main__:main:38 - Compression ratio: 6.241830065359477
+Time taken: 11.03 seconds
+QUERY 5
+2026-06-09 22:05:19.657 | INFO     | __main__:main:22 - Original query size: 68 tokens
+2026-06-09 22:05:19.657 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_5.sql
+2026-06-09 22:05:21.269 | INFO     | __main__:main:30 - Reduced query size: 45 tokens
+2026-06-09 22:05:21.269 | INFO     | __main__:main:38 - Compression ratio: 1.511111111111111
+Time taken: 1.89 seconds
+QUERY 6
+2026-06-09 22:05:21.548 | INFO     | __main__:main:22 - Original query size: 3810 tokens
+2026-06-09 22:05:21.548 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_6.sql
+2026-06-09 22:05:42.335 | INFO     | __main__:main:30 - Reduced query size: 118 tokens
+2026-06-09 22:05:42.335 | INFO     | __main__:main:38 - Compression ratio: 32.28813559322034
+Time taken: 21.10 seconds
+QUERY 7
+2026-06-09 22:05:42.634 | INFO     | __main__:main:22 - Original query size: 619 tokens
+2026-06-09 22:05:42.634 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_7.sql
+2026-06-09 22:05:57.853 | INFO     | __main__:main:30 - Reduced query size: 619 tokens
+2026-06-09 22:05:57.854 | INFO     | __main__:main:38 - Compression ratio: 1.0
+Time taken: 15.48 seconds
+QUERY 8
+2026-06-09 22:05:58.127 | INFO     | __main__:main:22 - Original query size: 1694 tokens
+2026-06-09 22:05:58.127 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_8.sql
+2026-06-09 22:06:13.717 | INFO     | __main__:main:30 - Reduced query size: 205 tokens
+2026-06-09 22:06:13.717 | INFO     | __main__:main:38 - Compression ratio: 8.263414634146342
+Time taken: 15.93 seconds
+QUERY 9
+2026-06-09 22:06:14.099 | INFO     | __main__:main:22 - Original query size: 1245 tokens
+2026-06-09 22:06:14.100 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_9.sql
+2026-06-09 22:06:14.895 | INFO     | __main__:main:30 - Reduced query size: 65 tokens
+2026-06-09 22:06:14.895 | INFO     | __main__:main:38 - Compression ratio: 19.153846153846153
+Time taken: 1.12 seconds
+QUERY 10
+2026-06-09 22:06:15.185 | INFO     | __main__:main:22 - Original query size: 259 tokens
+2026-06-09 22:06:15.185 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_10.sql
+2026-06-09 22:06:17.471 | INFO     | __main__:main:30 - Reduced query size: 54 tokens
+2026-06-09 22:06:17.471 | INFO     | __main__:main:38 - Compression ratio: 4.796296296296297
+Time taken: 2.56 seconds
+QUERY 11
+2026-06-09 22:06:17.811 | INFO     | __main__:main:22 - Original query size: 114 tokens
+2026-06-09 22:06:17.812 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_11.sql
+2026-06-09 22:06:24.119 | INFO     | __main__:main:30 - Reduced query size: 82 tokens
+2026-06-09 22:06:24.119 | INFO     | __main__:main:38 - Compression ratio: 1.3902439024390243
+Time taken: 6.67 seconds
+QUERY 12
+2026-06-09 22:06:24.439 | INFO     | __main__:main:22 - Original query size: 3818 tokens
+2026-06-09 22:06:24.439 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_12.sql
+2026-06-09 22:06:51.824 | INFO     | __main__:main:30 - Reduced query size: 266 tokens
+2026-06-09 22:06:51.824 | INFO     | __main__:main:38 - Compression ratio: 14.353383458646617
+Time taken: 27.67 seconds
+QUERY 13
+2026-06-09 22:06:52.104 | INFO     | __main__:main:22 - Original query size: 287 tokens
+2026-06-09 22:06:52.104 | INFO     | __main__:main:23 - The reduced query will be saved to: reductions/antlr4/query_13.sql
+2026-06-09 22:06:55.816 | INFO     | __main__:main:30 - Reduced query size: 90 tokens
+2026-06-09 22:06:55.817 | INFO     | __main__:main:38 - Compression ratio: 3.188888888888889
+Time taken: 3.99 seconds
