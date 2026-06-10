@@ -1,5 +1,5 @@
 import argparse
-from src.sqlglot_reducer import SQLQlotReducer
+from src.sqlglot_reducer import SQLGlotReducer
 from src.antlr4_reducer import Antlr4Reducer
 from src.treesitter_reducer import TreeSitterReducer
 from src.evaluation import token_count
@@ -26,7 +26,7 @@ def main():
     logger.info(f"The reduced query will be saved to: {original_query_path}")
 
     if parser_choice == "sqlglot":
-        reducer = SQLQlotReducer(original_query_path, test_path)
+        reducer = SQLGlotReducer(original_query_path, test_path)
     elif parser_choice == "antlr4":
         reducer = Antlr4Reducer(original_query_path, test_path)
     elif parser_choice == "tree-sitter":
