@@ -1,0 +1,4 @@
+CREATE TABLE tbl_wqiwo (icol_dhwup , rcol_eitnk  , tcol_yqthy , rcol_bjzii ,  tcol_wskpp);
+INSERT OR ABORT INTO tbl_wqiwo (rcol_eitnk, tcol_wskpp, tcol_yqthy) VALUES (1.0, 11960.180152676927, CAST('v_citjr' GLOB 'rAag' AS TEXT)),  (CAST(( -60733.41165606832 != -54381.10564306702) AS REAL), 8446, 'v_bwaja') ;
+ALTER TABLE tbl_wqiwo ADD COLUMN icol_ovpnc ;
+WITH with_vysww AS (SELECT * FROM tbl_wqiwo WHERE ((EXISTS (SELECT SUM(COALESCE(NULL, CAST(tbl_wqiwo.icol_ovpnc != -551 AS REAL))) FROM tbl_wqiwo WHERE (tbl_wqiwo.icol_ovpnc IN (   ) AND tbl_wqiwo.tcol_yqthy IS NOT NULL)) OR tbl_wqiwo.tcol_yqthy LIKE 'v_hkpkj') AND EXISTS (SELECT 1 FROM tbl_wqiwo WHERE tbl_wqiwo.icol_dhwup IS NULL)) ORDER BY tbl_wqiwo.tcol_wskpp),  with_kepqw AS (SELECT * FROM with_vysww GROUP BY with_vysww.icol_ovpnc ORDER BY with_vysww.rcol_bjzii) SELECT * FROM with_kepqw;

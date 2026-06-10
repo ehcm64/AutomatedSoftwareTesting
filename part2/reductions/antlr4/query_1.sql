@@ -1,0 +1,2 @@
+CREATE TABLE F (p    NOT NULL,  BOOLEAN);
+INSERT INTO F SELECT * FROM (VALUES ((NOT false), false), (NULL, (NOT (NOT true)))) AS L WHERE (((+(+(-((+110) / (+((-(-150)) * ( + (-86)))))))) = ((((+(+(24 / (+((+89) * (+58)))))) * (-(-(( + 223) / (-(222 / 219)))))) * (34 * 70)) * (+(+(( - (-( + (-104)))) * (-24)))))) = (false <> (66 <> 8)));

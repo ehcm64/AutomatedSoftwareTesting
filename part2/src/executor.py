@@ -1,13 +1,16 @@
 import subprocess
 
+
 class OracleExecutor:
     # Runs the oracle script and returns True if bug is still present, False otherwise.
 
     def __init__(self, oracle_script: str):
         self.oracle_script = oracle_script
         
-    def execute(self) -> bool:
+    def execute(self, query) -> bool:
         try:
+            with open("query.sql", "w") as f:
+                f.write(query)
             result = subprocess.run(
                 [self.oracle_script],
                 capture_output=True,

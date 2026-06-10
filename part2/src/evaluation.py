@@ -1,4 +1,3 @@
-import sys
 import sqlglot
 
 
@@ -8,4 +7,3 @@ def token_count(query_path: str) -> int:
         tokenizer = sqlglot.Tokenizer()
         tokens = tokenizer.tokenize(query)
         return len(tokens)
-

@@ -1,17 +1,11 @@
 from loguru import logger
 from .executor import OracleExecutor
-from .logger import setup_logging
-from .display import StatsDisplay
-from .evaluation import token_count
 from sqlglot import exp, parse_one
-
-
-import logging
-logging.getLogger("sqlglot").setLevel(logging.ERROR)
 
 SQL_DIALECT = "sqlite"
 
-class SQLReducer:
+
+class SQLQlotReducer:
     def __init__(self, original_query_path: str, test_path: str):
         self.original_query_path = original_query_path
         self.test_path = test_path
@@ -19,28 +13,28 @@ class SQLReducer:
 
 
     def save_query(self, query: str) -> None:
-        with open("query.sql", "w") as f:
+        with open(self.original_query_path, "w") as f:
             f.write(query)
 
 
-    def bfs_levels(self, tree: exp.Expression, max_depth: int) -> list[list[exp.Expression]]:
+    def bfs_levels(self, tree: exp.Expr, max_depth: int) -> list[list[exp.Expr]]:
         levels, current = [[tree]], [tree]
         depth = 0
         while current and depth < max_depth:
             next_level = []
             for node in current:
                 for child in node.args.values():
-                    if isinstance(child, exp.Expression):
+                    if isinstance(child, exp.Expr):
                         next_level.append(child)
                     elif isinstance(child, list):
-                        next_level.extend(c for c in child if isinstance(c, exp.Expression))
+                        next_level.extend(c for c in child if isinstance(c, exp.Expr))
             current = next_level
             levels.append(current)
             depth += 1
         return levels
 
 
-    def remove_node(self, node: exp.Expression) -> None:
+    def remove_node(self, node: exp.Expr) -> None:
         parent = node.parent
         if parent is None:
             return
@@ -80,20 +74,21 @@ class SQLReducer:
         return elements
 
         
-    def hdd(self, sql_query: str) -> str:
-        self.save_query(sql_query)
-        assert self.executor.execute()
+    def hdd(self) -> str:
+        with open(self.original_query_path, "r") as f:
+            sql_query = f.read()
+        assert self.executor.execute(sql_query)
 
         current_sql = sql_query
         test_count = 0
         test_errors = 0
 
         for reduction_pass in range(10): # HDD*
-            logger.info(f"Reduction pass #{reduction_pass + 1}")
+            logger.debug(f"Reduction pass #{reduction_pass + 1}")
 
             try:
                 tree = parse_one(current_sql, read=SQL_DIALECT)
-                logger.info("SQL parsed successfully")
+                logger.debug("SQL parsed successfully")
             except Exception:
                 logger.error("Error parsing SQL")
                 break
@@ -129,8 +124,7 @@ class SQLReducer:
                     try:
                         candidate = t.sql(pretty=False) # fails sometimes...
                         parse_one(candidate, dialect=SQL_DIALECT) # sanity check, also fails even more often...
-                        self.save_query(candidate)
-                        return self.executor.execute()
+                        return self.executor.execute(candidate)
                     except Exception:
                         nonlocal test_errors
                         test_errors += 1
@@ -139,7 +133,7 @@ class SQLReducer:
                 kept     = self.ddmin(node_sqls, test_fn)
                 kept_set = set(kept)
 
-                logger.info(f"Level {depth}: Generated {test_count} test cases, including {test_errors} errors")
+                logger.debug(f"Level {depth}: Generated {test_count} test cases, including {test_errors} errors")
     
                 if len(kept) < len(node_sqls): # prune the nodes on current level and update the tree and sql
                     for node in levels[depth]:
@@ -147,6 +141,7 @@ class SQLReducer:
                             self.remove_node(node)
 
                     current_sql = tree.sql(pretty=False)
+                    self.save_query(current_sql)  # persist intermediate reduction
                     progress = True
                     tree = parse_one(current_sql, dialect=SQL_DIALECT)
                 
@@ -156,29 +151,4 @@ class SQLReducer:
             if not progress:
                 break
 
-        return current_sql
-
-
-    def run(self) -> None:
-        with open(self.original_query_path, "r") as f:
-            original_query = f.read()
-        
-        reduced_query = self.hdd(original_query)
-
-        self.save_query(reduced_query)
-        assert self.executor.execute()
-
-        original_query_size = token_count(self.original_query_path)
-        reduced_query_size = token_count("query.sql")
-
-        if reduced_query_size > original_query_size:
-            logger.info(f"Reduction failed, query size increased: {reduced_query_size} > {original_query_size}")
-            self.save_query(original_query)
-            reduced_query_size = original_query_size
-        compression_ratio = original_query_size / reduced_query_size
-
-        logger.info(f"Compression ratio: {compression_ratio}")
-
-        logger.info(f"Reduced query: {reduced_query}")
-
-        
+        return current_sql    
