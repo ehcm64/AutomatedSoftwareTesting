@@ -1,4 +1,5 @@
 import argparse
+import sys
 from src.sqlglot_reducer import SQLGlotReducer
 from src.antlr4_reducer import Antlr4Reducer
 from src.treesitter_reducer import TreeSitterReducer
@@ -14,7 +15,12 @@ def main():
     parser.add_argument("--query", type=str, required=True, help="path to the SQL query to minimize")
     parser.add_argument("--test", type=str, required=True, help="path to oracle shell script")
     parser.add_argument("--parser", type=str, default="antlr4", choices=["sqlglot", "antlr4", "tree-sitter"], help="parser to use for reduction")
+    parser.add_argument("--log-level", type=str, default="info", choices=["debug", "info", "warning", "error", "critical"], help="logging level")
+
     args = parser.parse_args()
+
+    logger.configure(handlers=[{"sink": sys.stderr, "level": args.log_level.upper()}])
+
     original_query_path = args.query
     test_path = args.test
     parser_choice = args.parser
