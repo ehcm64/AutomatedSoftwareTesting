@@ -1,6 +1,7 @@
 import argparse
 from src.sqlglot_reducer import SQLQlotReducer
 from src.antlr4_reducer import Antlr4Reducer
+from src.treesitter_reducer import TreeSitterReducer
 from src.evaluation import token_count
 from loguru import logger
 
@@ -12,7 +13,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--query", type=str, required=True, help="path to the SQL query to minimize")
     parser.add_argument("--test", type=str, required=True, help="path to oracle shell script")
-    parser.add_argument("--parser", type=str, default="antlr4", choices=["sqlglot", "antlr4"], help="parser to use for reduction")
+    parser.add_argument("--parser", type=str, default="antlr4", choices=["sqlglot", "antlr4", "tree-sitter"], help="parser to use for reduction")
     args = parser.parse_args()
     original_query_path = args.query
     test_path = args.test
@@ -28,6 +29,8 @@ def main():
         reducer = SQLQlotReducer(original_query_path, test_path)
     elif parser_choice == "antlr4":
         reducer = Antlr4Reducer(original_query_path, test_path)
+    elif parser_choice == "tree-sitter":
+        reducer = TreeSitterReducer(original_query_path, test_path)
     else:
         raise ValueError(f"Unknown parser choice: {parser_choice}")
     reduced_query = reducer.hdd()
