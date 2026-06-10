@@ -84,7 +84,7 @@ class TreeSitterReducer:
         - If the total time taken exceeds `time_limit` seconds, we stop.
         - If we reach `reduction_passes` passes, we stop.
         """
-        
+
         with open(self.original_query_path, "r") as f:
             sql_query = f.read()
         assert self.executor.execute(sql_query)
@@ -108,7 +108,7 @@ class TreeSitterReducer:
             root = tree.root_node()
 
             if root.has_error():
-                logger.warning("Parse tree contains errors; attempting reduction anyway")
+                logger.debug("Parse tree contains errors; attempting reduction anyway")
 
             depth = 1
             levels = self.bfs_levels(root, max_depth=depth)
