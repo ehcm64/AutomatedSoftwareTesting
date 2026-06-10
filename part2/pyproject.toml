@@ -12,7 +12,8 @@ dependencies = [
     "mypy==1.20.1",
     "loguru==0.7.3",
     "antlr4-tools==0.2.2",
-    "antlr4-python3-runtime==4.13.2"
+    "antlr4-python3-runtime==4.13.2",
+    "tree-sitter-language-pack==1.8.1"
 ]
 
 [tool.setuptools]

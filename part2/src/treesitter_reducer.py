@@ -8,12 +8,11 @@ class TreeSitterReducer:
         self.original_query_path = original_query_path
         self.test_path = test_path
         self.executor = OracleExecutor(self.test_path)
-        # tree-sitter SQL grammar — error-tolerant, covers SQLite syntax
         self.ts_parser = get_parser("sql")
 
 
     def save_query(self, query: str) -> None:
-        with open("query.sql", "w") as f:
+        with open(self.original_query_path, "w") as f:
             f.write(query)
 
 
@@ -76,16 +75,17 @@ class TreeSitterReducer:
         return elements
 
 
-    def hdd(self, sql_query: str) -> str:
-        self.save_query(sql_query)
-        assert self.executor.execute()
+    def hdd(self) -> str:
+        with open(self.original_query_path, "r") as f:
+            sql_query = f.read()
+        assert self.executor.execute(sql_query)
 
         current_sql = sql_query
         test_count = 0
         test_errors = 0
 
         for reduction_pass in range(7):  # HDD*
-            logger.info(f"Reduction pass #{reduction_pass + 1}")
+            logger.debug(f"Reduction pass #{reduction_pass + 1}")
 
             source = bytes(current_sql, "utf8")
             tree = self.parse(current_sql)
@@ -93,8 +93,6 @@ class TreeSitterReducer:
 
             if root.has_error():
                 logger.warning("Parse tree contains errors; attempting reduction anyway")
-
-
 
             depth = 1
             levels = self.bfs_levels(root, max_depth=depth)
@@ -114,8 +112,7 @@ class TreeSitterReducer:
                     candidate = self.reconstruct_sql(_source, removed)
 
                     try:
-                        self.save_query(candidate)
-                        return self.executor.execute()
+                        return self.executor.execute(candidate)
                     except Exception:
                         test_errors += 1
                         return False
@@ -123,11 +120,12 @@ class TreeSitterReducer:
                 kept = self.ddmin(node_ranges, test_fn)
                 kept_set = set(kept)
 
-                logger.info(f"Level {depth}: {test_count} tests total, {test_errors} errors")
+                logger.debug(f"Level {depth}: {test_count} tests total, {test_errors} errors")
 
                 if len(kept) < len(node_ranges):
                     removed = [(s, e) for (s, e) in node_ranges if (s, e) not in kept_set]
                     current_sql = self.reconstruct_sql(source, removed)
+                    self.save_query(current_sql)
                     source = bytes(current_sql, "utf8")
                     tree = self.parse(current_sql)
                     root = tree.root_node()

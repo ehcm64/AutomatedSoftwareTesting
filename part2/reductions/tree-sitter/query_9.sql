@@ -1,0 +1,6 @@
+SELECT * FROM (
+SELECT * FROM (SELECT 1  col_c) 
+WHERE col_c IN (
+    SELECT (PERCENT_RANK() OVER()) FROM (VALUES (NULL))
+)
+);
