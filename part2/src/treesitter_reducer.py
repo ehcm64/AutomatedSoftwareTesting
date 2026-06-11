@@ -1,6 +1,7 @@
 from loguru import logger
 from .executor import OracleExecutor
 from tree_sitter_language_pack import get_parser
+import time
 
 
 class TreeSitterReducer:
@@ -75,35 +76,56 @@ class TreeSitterReducer:
         return elements
 
 
-    def hdd(self) -> str:
+    def hdd(self, reduction_passes: int = 10, min_reduction: float = 1.0, time_limit: float = 60.0) -> str:
+        """
+        Hierarchical Delta Debugging (HDD) implementation.
+        Termination conditions:
+        - If a reduction pass achieves less than `min_reduction` percent reduction, we stop.
+        - If the total time taken exceeds `time_limit` seconds, we stop.
+        - If we reach `reduction_passes` passes, we stop.
+        """
+
         with open(self.original_query_path, "r") as f:
             sql_query = f.read()
         assert self.executor.execute(sql_query)
 
         current_sql = sql_query
+        deadline = time.time() + time_limit
         test_count = 0
         test_errors = 0
 
-        for reduction_pass in range(7):  # HDD*
+        for reduction_pass in range(reduction_passes):
             logger.debug(f"Reduction pass #{reduction_pass + 1}")
+
+            if time.time() >= deadline:
+                logger.info(f"Termination: Reached time limit of {time_limit:.2f} seconds")
+                return current_sql
+
+            pass_start_size = len(current_sql)
 
             source = bytes(current_sql, "utf8")
             tree = self.parse(current_sql)
             root = tree.root_node()
 
             if root.has_error():
-                logger.warning("Parse tree contains errors; attempting reduction anyway")
+                logger.debug("Parse tree contains errors; attempting reduction anyway")
 
             depth = 1
             levels = self.bfs_levels(root, max_depth=depth)
-            progress = False
 
             while depth < len(levels):
+                if time.time() >= deadline:
+                    logger.info(f"Termination: Reached time limit of {time_limit:.2f} seconds")
+                    return current_sql
+
                 level_nodes = levels[depth]
 
                 node_ranges = [(n.start_byte(), n.end_byte()) for n in level_nodes]
 
                 def test_fn(kept_ranges, _source=source, _node_ranges=node_ranges):
+                    if time.time() >= deadline:
+                        return False
+
                     nonlocal test_count, test_errors
                     test_count += 1
 
@@ -129,12 +151,17 @@ class TreeSitterReducer:
                     source = bytes(current_sql, "utf8")
                     tree = self.parse(current_sql)
                     root = tree.root_node()
-                    progress = True
 
                 depth += 1
                 levels = self.bfs_levels(root, depth)
 
-            if not progress:
-                break
 
+            pass_reduction = (pass_start_size - len(current_sql)) / pass_start_size * 100
+            logger.debug(f"Pass {reduction_pass + 1} size reduction: {pass_reduction:.2f}%")
+
+            if pass_reduction < min_reduction:
+                logger.info(f"Termination: Reduction {pass_reduction:.2f}% is less than minimum {min_reduction:.2f}%")
+                return current_sql
+
+        logger.info(f"Termination: Reached maximum reduction passes of {reduction_passes}")
         return current_sql

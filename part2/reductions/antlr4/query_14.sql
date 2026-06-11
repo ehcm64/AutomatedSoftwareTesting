@@ -3,6 +3,11 @@ CREATE TABLE t3 (c0  ,  DATE,  BLOB, c3 ,  CLOB,  TEXT, c6 ,  NCHAR);
 INSERT INTO t3 VALUES(72.519999999999996019,'2021-02-20',X'6b234f56614925413420',670412515,'lWYW?BoJXqa.PAxab','1zzJUdSU','ivPjAd','j-cQTi69rz.');
 INSERT INTO t3 VALUES(92.760000000000005114,'2021-06-26',X'27',-967865178,'W 5rp','emKRmojiSl-SBt4Vcmcb','?z!gCb','bbFR5p7.aBZM7Z,0Aos');
 CREATE TABLE t5 (c0  , c1 ,  CHARACTER);
+INSERT INTO t5 VALUES('7bxI8',941795,'WP9UO');
+INSERT INTO t5 VALUES('BNJaL01Lj3sMXZQT-A',2846408,'YEJ.ZsTrGheCmV');
+INSERT INTO t5 VALUES('Fol 6xZ1KTiWTe',5223990,'c3Rff');
+INSERT INTO t5 VALUES('-u!.j!p2P rZ',-7608565,'etWPioGcJ-r9');
+INSERT INTO t5 VALUES('aFGxdW5PRFhKFE',-2444631,'H4,C0XvPP8W8Yq');
 INSERT INTO t5 VALUES('aZbvf3I7q,AKk',-1947983,'?l,nL9H');
 INSERT INTO t5 VALUES('N1L0J1RZsIbuJ0!g',923750,'zo2oR');
 INSERT INTO t5 VALUES('_JB5-Z!',-2877915,'dD0J0N-77?0Uo1e ,');
@@ -46,7 +51,7 @@ WITH
             t1_stats AS (
                 SELECT c1, 
                     COUNT(*) as count,
-                    (c0) as avg_pk
+                    AVG(c0) as avg_pk
                 FROM t5
                 GROUP BY c1
             ),
@@ -63,9 +68,9 @@ WITH
                 (SELECT AVG(count) FROM t1_stats) as overall_avg,
                 (
                     SELECT COUNT(*) FROM (
-                        SELECT  
-                                LAG(t3.c4) OVER() as prev_val,
-                                LEAD(t3.c4) OVER() as next_val
+                        SELECT t3.c0, 
+                                LAG(t3.c4) OVER(ORDER BY t3.c0) as prev_val,
+                                LEAD(t3.c4) OVER(ORDER BY t3.c0) as next_val
                         FROM t0 t3
                         WHERE t3.c0 IN (
                             SELECT td.c0 FROM t2_derived td
@@ -80,8 +85,8 @@ WITH
                 ) as window_matches
             FROM (
                 SELECT ts.c1, td.category,
-                     ts.avg_pk,
-                    DENSE_RANK() OVER(PARTITION BY td.category ) as rank_in_category
+                    ts.count, ts.avg_pk,
+                    DENSE_RANK() OVER(PARTITION BY td.category ORDER BY ts.count DESC) as rank_in_category
                 FROM t1_stats ts
                 CROSS JOIN (
                     SELECT DISTINCT category FROM t2_derived
